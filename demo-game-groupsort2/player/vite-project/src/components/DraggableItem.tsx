@@ -1,71 +1,45 @@
-import clsx from "clsx";
-import { useAnimation, type PanInfo, motion } from "framer-motion";
-import { useRef } from "react";
-import type { DraggableItemProps } from "../types/components";
+import { useDraggable } from "@dnd-kit/core";
+import { motion } from "framer-motion";
+import type { Item } from "../types/objects";
 import { layoutTransition } from "../config";
 
-const DraggableItem: React.FC<DraggableItemProps> = ({
+interface Props {
+  item: Item;
+  isDragging?: boolean;
+}
+
+// Component hiển thị UI thuần túy
+export const ItemCard: React.FC<Props & { style?: React.CSSProperties }> = ({
   item,
-  onDragEnd,
-  containerRef,
   isDragging,
-  onDragStart,
-}) => {
-  const controls = useAnimation();
-  const itemRef = useRef<HTMLDivElement>(null);
+  style,
+}) => (
+  <motion.div
+    layoutId={item.id}
+    className={`w-32 h-32 shrink-0 flex items-center justify-center border-4 border-yellow-400 rounded-3xl bg-white shadow-lg select-none cursor-grab active:cursor-grabbing ${
+      isDragging ? "opacity-30" : "opacity-100"
+    }`}
+    style={style}
+    transition={layoutTransition}
+  >
+    <img
+      src={item.imgsrc}
+      alt={item.name}
+      className="w-24 h-24 object-contain pointer-events-none"
+    />
+  </motion.div>
+);
 
-  const handleDragStart = () => {
-    onDragStart(item.id);
-  };
-
-  const handleDragEnd = async (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    const droppedOnGroup = await onDragEnd(item, info, itemRef);
-
-    if (!droppedOnGroup) {
-      controls.start({
-        x: 0,
-        y: 0,
-        transition: { ...layoutTransition, duration: 0.3 },
-      });
-    }
-  };
+const DraggableItem: React.FC<{ item: Item }> = ({ item }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.id,
+    data: item,
+  });
 
   return (
-    <motion.div
-      ref={itemRef}
-      layout
-      layoutId={item.id}
-      drag
-      dragConstraints={containerRef}
-      dragMomentum={false}
-      dragElastic={0.1}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      animate={controls}
-      whileDrag={{
-        scale: 1.1,
-        zIndex: 50,
-        boxShadow: "0px 10px 20px rgba(0,0,0,0.2)",
-        cursor: "grabbing",
-      }}
-      transition={layoutTransition}
-      className={clsx(
-        "w-32 h-32 flex items-center justify-center border-4 border-yellow-400 rounded-3xl bg-white shadow-lg select-none",
-        isDragging
-          ? "opacity-0"
-          : "opacity-100 cursor-grab active:cursor-grabbing",
-      )}
-      style={{ touchAction: "none" }}
-    >
-      <img
-        src={item.imgsrc}
-        alt={item.name}
-        className="w-24 h-24 object-contain pointer-events-none"
-      />
-    </motion.div>
+    <div ref={setNodeRef} {...listeners} {...attributes}>
+      <ItemCard item={item} isDragging={isDragging} />
+    </div>
   );
 };
 
