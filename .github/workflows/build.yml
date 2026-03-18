@@ -47,8 +47,12 @@ jobs:
         working-directory: ${{ matrix.project }}
         run: yarn build
 
+      - name: Sanitize artifact name
+        id: sanitize
+        run: echo "ARTIFACT_NAME=build-$(echo '${{ matrix.project }}' | tr '/' '-')" >> $GITHUB_ENV
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.project }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: ${{ matrix.project }}/dist
