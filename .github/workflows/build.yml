@@ -1,21 +1,34 @@
-name: Build Vite Projects
+name: Build Projects
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     strategy:
       matrix:
-        project:
-          - demo-game-groupsort2/player/vite-project
-          # Add more project paths here:
-          # - demo-game-groupsort2/admin/vite-project
-          # - another-folder/vite-project
-    runs-on: ubuntu-latest
+        include:
+          # Vite projects
+          - project: demo-game-groupsort2/player/vite-project
+            type: vite
+            os: ubuntu-latest
+          # Add more project paths here
+
+          # Electron projects
+          - project: demo-desktop-app-electron/electron-app
+            type: electron
+            os: windows-latest
+          # - project: demo-desktop-app-electron/electron-app
+          #   type: electron
+          #   os: macos-latest
+          - project: demo-desktop-app-electron/electron-app
+            type: electron
+            os: ubuntu-latest
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -43,16 +56,37 @@ jobs:
         working-directory: ${{ matrix.project }}
         run: yarn install --immutable
 
+      # Conditional build step
       - name: Build project
         working-directory: ${{ matrix.project }}
-        run: yarn build
+        run: |
+          if [ "${{ matrix.type }}" = "vite" ]; then
+            yarn build
+          else
+            yarn build
+          fi
+
+      # Conditional packaging step for electron
+      - name: Package electron app
+        if: matrix.type == 'electron'
+        working-directory: ${{ matrix.project }}
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            yarn build:win
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            yarn build:mac
+          else
+            yarn build:linux
+          fi
 
       - name: Sanitize artifact name
         id: sanitize
-        run: echo "ARTIFACT_NAME=build-$(echo '${{ matrix.project }}' | tr '/' '-')" >> $GITHUB_ENV
+        run: echo "ARTIFACT_NAME=build-${{ matrix.type }}-$(echo '${{ matrix.project }}' | tr '/' '-')" >> $GITHUB_ENV
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ matrix.project }}/dist
+          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.os }}
+          path: |
+            ${{ matrix.project }}/dist
+            ${{ matrix.project }}/release
