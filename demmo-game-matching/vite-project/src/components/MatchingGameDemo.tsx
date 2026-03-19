@@ -1,11 +1,8 @@
 // MatchingGame.tsx
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import type { CardData, GameCard, MessageType } from "../types/objects";
-
-interface MatchingGameProps {
-  cardsData: CardData[];
-}
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useState } from "react";
+import type { GameCard, MessageType } from "../types/objects";
+import type { MatchingGameProps } from "../types/components";
 
 const MatchingGameDemo: React.FC<MatchingGameProps> = ({ cardsData }) => {
   // Hàm khởi tạo bộ bài (mỗi cặp xuất hiện 2 lần và trộn)
@@ -95,7 +92,7 @@ const MatchingGameDemo: React.FC<MatchingGameProps> = ({ cardsData }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 p-4 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-linear-to-br from-blue-100 to-purple-200 p-4 flex flex-col items-center justify-center">
       {/* Linh vật tạm (thông báo) */}
       <div className="mb-6 h-16 flex items-center justify-center">
         <AnimatePresence mode="wait">
@@ -138,7 +135,7 @@ const MatchingGameDemo: React.FC<MatchingGameProps> = ({ cardsData }) => {
               >
                 {/* Mặt trước (úp) */}
                 <motion.div
-                  className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center backface-hidden"
+                  className="absolute inset-0 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center backface-hidden"
                   style={{ backfaceVisibility: "hidden" }}
                   animate={{ opacity: card.flipped || card.matched ? 0 : 1 }}
                 >
