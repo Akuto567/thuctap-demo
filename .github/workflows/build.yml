@@ -1,0 +1,58 @@
+name: Build Vite Projects
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        project:
+          - demo-game-groupsort2/player/vite-project
+          # Add more project paths here:
+          # - demo-game-groupsort2/admin/vite-project
+          # - another-folder/vite-project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Yarn 4
+        run: corepack enable && corepack prepare yarn@4.12.0 --activate
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .yarn/cache
+            ${{ matrix.project }}/.yarn/install-state.gz
+          key: ${{ runner.os }}-yarn-${{ hashFiles(format('{0}/yarn.lock', matrix.project)) }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.project }}
+        run: yarn install --immutable
+
+      - name: Build project
+        working-directory: ${{ matrix.project }}
+        run: yarn build
+
+      - name: Sanitize artifact name
+        id: sanitize
+        run: echo "ARTIFACT_NAME=build-$(echo '${{ matrix.project }}' | tr '/' '-')" >> $GITHUB_ENV
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ matrix.project }}/dist
