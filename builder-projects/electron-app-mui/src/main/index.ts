@@ -93,9 +93,65 @@ function purgeUnusedAssets(projectDir: string, projectData: object) {
 }
 
 function injectAppData(html: string, appData: object): string {
-  const scriptTag = `<script>window.APP_DATA = ${JSON.stringify(appData)};window.MY_APP_DATA=window.APP_DATA</script>`
+  const scriptTag = `<script>window.APP_DATA = ${JSON.stringify(appData)};window.MY_APP_DATA=window.APP_DATA;window.win={};window.win.DATA=window.APP_DATA</script>`
   return html.replace(/<script/, scriptTag + '\n<script')
 }
+
+function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
+  if (obj === null || obj === undefined) return obj
+  if (Array.isArray(obj)) return obj.map((item) => normalizeAssetPaths(item, projectDir))
+  if (typeof obj !== 'object') return obj
+
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof value === 'string' && value.startsWith('assets/')) {
+      const absPath = path.join(projectDir, value)
+      result[key] = `file://${absPath.replace(/\\/g, '/')}`
+    } else {
+      result[key] = normalizeAssetPaths(value, projectDir)
+    }
+  }
+  return result
+}
+
+// ── IPC: Preview ─────────────────────────────────────────────────────────────
+ipcMain.handle(
+  'preview-project',
+  async (
+    _e,
+    opts: {
+      templateId: string
+      appData: object
+      projectDir: string
+    }
+  ) => {
+    const { templateId, appData, projectDir } = opts
+    const gameDir = getGameDir(templateId)
+    const htmlPath = path.join(gameDir, 'index.html')
+    if (!fs.existsSync(htmlPath)) throw new Error(`Template HTML not found for: ${templateId}`)
+
+    const sanitizedData = normalizeAssetPaths(appData, projectDir)
+    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), sanitizedData as object)
+
+    const previewWindow = new BrowserWindow({
+      width: 1100,
+      height: 760,
+      title: `${templateId} Preview`,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        webSecurity: false
+      }
+    })
+
+    // Load HTML directly from memory; resolve relative paths to template game folder
+    previewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(injectedHtml)}`, {
+      baseURLForDataURL: `file://${gameDir.replace(/\\/g, '/')}/`
+    })
+
+    return { success: true }
+  }
+)
 
 // ── Window ────────────────────────────────────────────────────────────────────
 function createWindow() {

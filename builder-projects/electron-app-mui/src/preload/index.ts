@@ -24,5 +24,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     appData: object
     projectDir: string
     mode: 'folder' | 'zip'
-  }) => ipcRenderer.invoke('export-project', opts)
+  }) => ipcRenderer.invoke('export-project', opts),
+  previewProject: (opts: { templateId: string; appData: object; projectDir: string }) =>
+    ipcRenderer.invoke('preview-project', opts)
 })

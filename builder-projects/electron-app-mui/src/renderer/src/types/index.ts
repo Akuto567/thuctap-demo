@@ -3,7 +3,11 @@ export interface GameTemplate {
   id: string
   name: string
   description: string
+<<<<<<< HEAD
   gameType: 'group-sort' | 'quiz' | 'word-search' | string
+=======
+  gameType: 'group-sort' | 'plane-quiz' | string
+>>>>>>> origin/main
   version: string
   thumbnailUrl: string | null // file:// URL resolved by main process, or null
 }
@@ -141,6 +145,11 @@ export interface ElectronAPI {
     projectDir: string
     mode: 'folder' | 'zip'
   }) => Promise<{ success?: boolean; canceled?: boolean; path?: string }>
+  previewProject: (opts: {
+    templateId: string
+    appData: object
+    projectDir: string
+  }) => Promise<{ success?: boolean }>
 }
 
 declare global {
