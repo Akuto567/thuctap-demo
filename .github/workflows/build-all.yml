@@ -20,7 +20,7 @@ jobs:
           - project_path: "template-projects/group-sort"
             game_id: "group-sort"
           - project_path: "template-projects/plane-game"
-            game_id: "quiz"
+            game_id: "plane-quiz"
           # Add more Project A's (Templates) here:
           # - project_path: "apps/mini-game-2"
           #   game_id: "memory-match"
