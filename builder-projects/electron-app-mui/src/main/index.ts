@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import * as path from 'path'
-import * as fs from 'fs'
 import archiver from 'archiver'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import * as fs from 'fs'
+import * as path from 'path'
 
 const isDev = process.env.NODE_ENV === 'development'
 

@@ -2,8 +2,8 @@
  * Shared primitives used by both GroupSortEditor and QuizEditor.
  * Keep this file free of game-specific logic.
  */
-import { useCallback, useRef, useState } from 'react'
 import { Badge, Box, TextField, Typography } from '@mui/material'
+import { useCallback, useRef, useState } from 'react'
 
 // ── SidebarTab ────────────────────────────────────────────────────────────────
 export function SidebarTab({
@@ -50,6 +50,12 @@ export function SidebarTab({
       <Badge
         badgeContent={badge}
         color={badgeColor === 'default' ? 'primary' : badgeColor}
+        sx={{
+          '& .MuiBadge-badge': {
+            position: 'static', // Removes the "floating" absolute position
+            transform: 'none' // Prevents the offset shift
+          }
+        }}
         max={99}
       >
         <span />

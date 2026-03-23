@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
 import { Box } from '@mui/material'
+import React, { useEffect } from 'react'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   // Remove splash screen after first React paint

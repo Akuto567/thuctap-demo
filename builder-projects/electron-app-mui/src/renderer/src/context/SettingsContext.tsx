@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import {
+  DEFAULT_GLOBAL_SETTINGS,
   GlobalSettings,
   ProjectSettings,
-  ResolvedSettings,
-  DEFAULT_GLOBAL_SETTINGS
+  ResolvedSettings
 } from '../types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

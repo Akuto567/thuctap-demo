@@ -1,8 +1,8 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import ProjectPage from './pages/ProjectPage'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import { SettingsProvider } from './context/SettingsContext'
+import HomePage from './pages/HomePage'
+import ProjectPage from './pages/ProjectPage'
 
 export default function App() {
   return (

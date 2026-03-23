@@ -1,7 +1,11 @@
-import { useCallback, useState } from 'react'
+import AddIcon from '@mui/icons-material/Add'
+import CategoryIcon from '@mui/icons-material/Category'
+import DeleteIcon from '@mui/icons-material/Delete'
+import ExtensionIcon from '@mui/icons-material/Extension'
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
   Alert,
-  Badge,
   Box,
   Button,
   Chip,
@@ -16,16 +20,11 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import CategoryIcon from '@mui/icons-material/Category'
-import DeleteIcon from '@mui/icons-material/Delete'
-import ExtensionIcon from '@mui/icons-material/Extension'
-import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
-import WarningAmberIcon from '@mui/icons-material/WarningAmber'
-import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../types'
+import { useCallback, useState } from 'react'
 import { useSettings } from '../context/SettingsContext'
-import ImagePicker from './ImagePicker'
+import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../types'
 import { DroppableZone, EmptyState, IndexBadge, NameField, SidebarTab } from './EditorShared'
+import ImagePicker from './ImagePicker'
 
 interface Props {
   appData: GroupSortAppData
@@ -338,7 +337,7 @@ function GroupsTab({
           </Typography>
         </Box>
         <DroppableZone onFileDrop={onAddFromDrop}>
-          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={onAdd}>
+          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={() => onAdd()}>
             Add Group
           </Button>
         </DroppableZone>
@@ -459,7 +458,7 @@ function ItemsTab({
             startIcon={<AddIcon />}
             variant="contained"
             size="small"
-            onClick={onAdd}
+            onClick={() => onAdd()}
             disabled={groups.length === 0}
           >
             Add Item
@@ -618,7 +617,12 @@ function OverviewTab({
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <DroppableZone onFileDrop={onAddGroupFromDrop}>
-            <Button startIcon={<AddIcon />} variant="outlined" size="small" onClick={onAddGroup}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="outlined"
+              size="small"
+              onClick={() => onAddGroup()}
+            >
               Add Group
             </Button>
           </DroppableZone>

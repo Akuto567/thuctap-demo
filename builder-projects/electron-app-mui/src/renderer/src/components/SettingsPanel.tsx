@@ -1,20 +1,20 @@
+import CloseIcon from '@mui/icons-material/Close'
+import FolderSpecialIcon from '@mui/icons-material/FolderSpecial'
+import PublicIcon from '@mui/icons-material/Public'
 import {
   Box,
-  Drawer,
-  Typography,
-  IconButton,
+  Chip,
   Divider,
+  Drawer,
+  FormControlLabel,
+  IconButton,
+  Slider,
+  Switch,
   ToggleButton,
   ToggleButtonGroup,
-  Switch,
-  FormControlLabel,
-  Slider,
   Tooltip,
-  Chip
+  Typography
 } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
-import PublicIcon from '@mui/icons-material/Public'
-import FolderSpecialIcon from '@mui/icons-material/FolderSpecial'
 import { useSettings } from '../context/SettingsContext'
 import { AutoSaveMode, ProjectSettings } from '../types'
 

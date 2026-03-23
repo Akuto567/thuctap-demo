@@ -1,4 +1,11 @@
-import { useCallback, useState } from 'react'
+import AddIcon from '@mui/icons-material/Add'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import DeleteIcon from '@mui/icons-material/Delete'
+import QuizIcon from '@mui/icons-material/Quiz'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
   Alert,
   Box,
@@ -14,18 +21,11 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteIcon from '@mui/icons-material/Delete'
-import QuizIcon from '@mui/icons-material/Quiz'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
-import CheckBoxIcon from '@mui/icons-material/CheckBox'
-import WarningAmberIcon from '@mui/icons-material/WarningAmber'
-import { QuizAnswer, QuizAppData, QuizQuestion } from '../types'
+import { useCallback } from 'react'
 import { useSettings } from '../context/SettingsContext'
-import ImagePicker from './ImagePicker'
+import { QuizAnswer, QuizAppData, QuizQuestion } from '../types'
 import { DroppableZone, EmptyState, IndexBadge, NameField, SidebarTab } from './EditorShared'
+import ImagePicker from './ImagePicker'
 
 interface Props {
   appData: QuizAppData

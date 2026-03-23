@@ -1,33 +1,33 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FolderOffIcon from '@mui/icons-material/FolderOff'
+import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import HistoryIcon from '@mui/icons-material/History'
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CardActionArea,
-  Button,
-  CircularProgress,
-  Chip,
-  Divider,
   Alert,
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Collapse,
   Dialog,
-  DialogTitle,
+  DialogActions,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  Collapse,
+  DialogTitle,
+  Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  Typography
 } from '@mui/material'
-import FolderOpenIcon from '@mui/icons-material/FolderOpen'
-import AddIcon from '@mui/icons-material/Add'
-import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
-import FolderOffIcon from '@mui/icons-material/FolderOff'
-import HistoryIcon from '@mui/icons-material/History'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { GameTemplate, RecentProject } from '../types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
