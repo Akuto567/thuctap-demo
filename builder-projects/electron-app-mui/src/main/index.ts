@@ -86,7 +86,7 @@ function purgeUnusedAssets(projectDir: string, projectData: object) {
 }
 
 function injectAppData(html: string, appData: object): string {
-  const scriptTag = `<script>window.APP_DATA = ${JSON.stringify(appData)};window.MY_APP_DATA=window.APP_DATA;window.win={};window.win.DATA=window.APP_DATA</script>`
+  const scriptTag = `<script>window.APP_DATA = ${JSON.stringify(appData)};window.MY_APP_DATA=window.APP_DATA;window.win={DATA:window.APP_DATA}</script>`
   return html.replace(/<script/, scriptTag + '\n<script')
 }
 

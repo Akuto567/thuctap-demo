@@ -1,6 +1,6 @@
 {
   "name": "Balloon game",
   "description": "Student control a plane to answer questions.",
-  "gameType": "quiz",
+  "gameType": "balloon-letter-picker",
   "version": "1.0.0"
 }

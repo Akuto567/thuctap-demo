@@ -131,7 +131,8 @@ export default function HomePage() {
         : template.gameType === 'plane-quiz'
           ? { questions: [], _questionCounter: 0 }
           : template.gameType === 'group-sort'
-        ?{} :{}
+            ? {}
+            : {}
     const newProject = {
       version: '1.0.0',
       templateId: template.id,
@@ -176,7 +177,7 @@ export default function HomePage() {
         display: 'flex',
         flexDirection: 'column',
         gap: 4,
-        maxWidth: 1000,
+        // maxWidth: 1000,
         mx: 'auto',
         width: '100%'
       }}
@@ -461,13 +462,28 @@ function GameTemplateCard({
   return (
     <Card
       sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%', // let the Card stretch to the grid item height
         background:
           'linear-gradient(135deg, rgba(110,231,183,0.05) 0%, rgba(167,139,250,0.05) 100%)',
         transition: 'transform 0.15s, box-shadow 0.15s',
-        '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(110,231,183,0.12)' }
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 8px 32px rgba(110,231,183,0.12)'
+        }
       }}
     >
-      <CardActionArea onClick={() => onSelect(template)} sx={{ p: 1 }}>
+      <CardActionArea
+        onClick={() => onSelect(template)}
+        sx={{
+          p: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          height: '100%' // make the clickable area fill the Card
+        }}
+      >
         <Box
           sx={{
             height: 140,
@@ -492,7 +508,17 @@ function GameTemplateCard({
             <SportsEsportsIcon sx={{ fontSize: 56, color: 'primary.main', opacity: 0.6 }} />
           )}
         </Box>
-        <CardContent sx={{ pt: 0.5, pb: '12px !important' }}>
+
+        <CardContent
+          sx={{
+            pt: 0.5,
+            pb: '12px !important',
+            display: 'flex',
+            flexDirection: 'column',
+            flexGrow: 1, // this area grows to take available vertical space
+            minHeight: 0
+          }}
+        >
           <Box
             sx={{
               display: 'flex',
@@ -513,7 +539,15 @@ function GameTemplateCard({
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
             {template.description}
           </Typography>
-          <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box
+            sx={{
+              mt: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              marginTop: 'auto' // pushes this row to the bottom of CardContent
+            }}
+          >
             <AddIcon sx={{ fontSize: 16, color: 'primary.main' }} />
             <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
               Create new project
