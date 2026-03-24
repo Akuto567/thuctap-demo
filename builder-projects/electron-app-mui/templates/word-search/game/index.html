@@ -240,6 +240,90 @@
         color: rgba(0, 0, 0, 0.68);
       }
 
+      .completion-modal[hidden] {
+        display: none;
+      }
+
+      .completion-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(6px);
+      }
+
+      .completion-card {
+        width: min(100%, 420px);
+        padding: 28px 24px;
+        border-radius: 24px;
+        text-align: center;
+        color: #102a43;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.98));
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+      }
+
+      .completion-badge {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 16px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        background: linear-gradient(135deg, #fef08a, #86efac);
+        box-shadow: 0 12px 30px rgba(34, 197, 94, 0.2);
+      }
+
+      .completion-card h3 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .completion-card p {
+        margin: 12px 0 0;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #334155;
+      }
+
+      .completion-actions {
+        margin-top: 22px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .completion-button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      }
+
+      .completion-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .completion-button.primary {
+        color: #ffffff;
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        box-shadow: 0 12px 24px rgba(34, 197, 94, 0.22);
+      }
+
+      .completion-button.secondary {
+        color: #0f172a;
+        background: rgba(148, 163, 184, 0.16);
+      }
+
       @media (max-width: 768px) {
         .overlay-content {
           padding: 20px 12px;
@@ -303,6 +387,23 @@
         .found-hint {
           border-width: 1px;
         }
+
+        .completion-card {
+          padding: 24px 18px;
+          border-radius: 20px;
+        }
+
+        .completion-card h3 {
+          font-size: 24px;
+        }
+
+        .completion-actions {
+          flex-direction: column;
+        }
+
+        .completion-button {
+          width: 100%;
+        }
       }
     </style>
   </head>
@@ -327,6 +428,21 @@
             <div id="grid" class="grid"></div>
           </div>
           <div id="images" class="image-hints"></div>
+        </div>
+      </div>
+    </div>
+    <div class="completion-modal" id="completion-modal" hidden>
+      <div class="completion-card" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+        <div class="completion-badge" aria-hidden="true">🏆</div>
+        <h3 id="completion-title">Chúc mừng!</h3>
+        <p>Bạn đã tìm hết tất cả các từ trong trò chơi này.</p>
+        <div class="completion-actions">
+          <button class="completion-button primary" id="play-again-button" type="button">
+            Chơi lại
+          </button>
+          <button class="completion-button secondary" id="exit-button" type="button">
+            Thoát
+          </button>
         </div>
       </div>
     </div>
@@ -577,13 +693,45 @@
         const progressCountNode = document.getElementById("progress-count");
         const progressStateNode = document.getElementById("progress-state");
         const progressFillNode = document.getElementById("progress-fill");
-        const gridNode = document.getElementById("grid");
-        const imagesNode = document.getElementById("images");
-        const gridShell = document.getElementById("grid-shell");
+        const gameWrapperNode = document.getElementById("game-wrapper");
+        const completionModal = document.getElementById("completion-modal");
+        const playAgainButton = document.getElementById("play-again-button");
+        const exitButton = document.getElementById("exit-button");
+
+        let completionShown = false;
+        let puzzle = null;
+        let isDragging = false;
+        let selected = [];
+        let direction = null;
+        let activeInputMode = null;
+        let foundWords = new Set();
 
         titleNode.textContent = data.title;
         helperNode.textContent = data.helperText;
         applyTextTheme(overlayContent, false);
+        completionModal.hidden = true;
+
+        function showCompletionModal() {
+          if (completionShown) return;
+          completionShown = true;
+          completionModal.hidden = false;
+        }
+
+        function handleExit() {
+          window.close();
+          setTimeout(() => {
+            if (!document.hidden) {
+              window.history.back();
+            }
+          }, 120);
+          setTimeout(() => {
+            if (!document.hidden) {
+              window.location.replace("about:blank");
+            }
+          }, 260);
+        }
+
+        exitButton.onclick = handleExit;
 
         if (data.backgroundImagePath) {
           overlayContent.style.background =
@@ -606,34 +754,70 @@
                 : foundCount === 0
                   ? "Keep going"
                   : "Nice progress";
+
+          if (safeTotal > 0 && foundCount === safeTotal) {
+            showCompletionModal();
+          }
         }
 
-        if (data.items.length === 0) {
-          updateProgress(0, 0);
-          document.getElementById("game-wrapper").innerHTML =
-            '<div class="empty">No words were added to this game yet.</div>';
-          return;
+        function bindGridCells() {
+          document.querySelectorAll(".cell").forEach((cell) => {
+            cell.addEventListener("pointerdown", (event) => {
+              if (event.pointerType === "touch") return;
+              beginSelection(cell, "pointer");
+            });
+
+            cell.addEventListener("pointerenter", () => {
+              if (activeInputMode !== "pointer") return;
+              extendSelection(cell);
+            });
+          });
         }
 
-        const puzzle = buildPuzzle(data.items, data.gridSize);
+        function startRound() {
+          completionShown = false;
+          completionModal.hidden = true;
+          foundWords = new Set();
+          isDragging = false;
+          selected = [];
+          direction = null;
+          activeInputMode = null;
 
-        if (!puzzle.grid.length) {
-          document.getElementById("game-wrapper").innerHTML =
-            '<div class="empty">The puzzle could not be generated. Try shortening a word or removing duplicates.</div>';
-          return;
+          if (data.items.length === 0) {
+            updateProgress(0, 0);
+            gameWrapperNode.innerHTML =
+              '<div class="empty">No words were added to this game yet.</div>';
+            return;
+          }
+
+          gameWrapperNode.innerHTML =
+            '<div class="grid-shell" id="grid-shell"><div id="grid" class="grid"></div></div><div id="images" class="image-hints"></div>';
+          const nextGridShell = document.getElementById("grid-shell");
+          const nextGridNode = document.getElementById("grid");
+          const nextImagesNode = document.getElementById("images");
+
+          puzzle = buildPuzzle(data.items, data.gridSize);
+
+          if (!puzzle.grid.length) {
+            gameWrapperNode.innerHTML =
+              '<div class="empty">The puzzle could not be generated. Try shortening a word or removing duplicates.</div>';
+            return;
+          }
+
+          nextGridNode.style.gridTemplateColumns = `repeat(${puzzle.grid.length}, var(--cell-size))`;
+          nextGridNode.style.setProperty("--grid-size", String(puzzle.grid.length));
+          nextGridNode.innerHTML = renderGrid(puzzle.grid);
+          nextImagesNode.innerHTML = renderImages(data.items);
+          updateProgress(0, data.items.length);
+
+          bindGridCells();
+
+          nextGridShell.addEventListener("pointermove", handlePointerMove);
+          nextGridShell.addEventListener("touchstart", handleTouchStart, { passive: false });
+          nextGridShell.addEventListener("touchmove", handleTouchMove, { passive: false });
+          nextGridShell.addEventListener("touchend", finishSelection);
+          nextGridShell.addEventListener("touchcancel", finishSelection);
         }
-
-        gridNode.style.gridTemplateColumns = `repeat(${puzzle.grid.length}, var(--cell-size))`;
-        gridNode.style.setProperty("--grid-size", String(puzzle.grid.length));
-        gridNode.innerHTML = renderGrid(puzzle.grid);
-        imagesNode.innerHTML = renderImages(data.items);
-        updateProgress(0, data.items.length);
-
-        let isDragging = false;
-        let selected = [];
-        let direction = null;
-        let activeInputMode = null;
-        const foundWords = new Set();
 
         function beginSelection(cell, inputMode) {
           if (!cell) return;
@@ -752,58 +936,38 @@
           selected = [];
         }
 
-        document.querySelectorAll(".cell").forEach((cell) => {
-          cell.addEventListener("pointerdown", (event) => {
-            if (event.pointerType === "touch") return;
-            beginSelection(cell, "pointer");
-          });
-
-          cell.addEventListener("pointerenter", () => {
-            if (activeInputMode !== "pointer") return;
-            extendSelection(cell);
-          });
-        });
-
-        gridShell.addEventListener("pointermove", (event) => {
+        function handlePointerMove(event) {
           if (activeInputMode !== "pointer") return;
           const cell = getCellFromPoint(event.clientX, event.clientY);
           extendSelection(cell);
-        });
+        }
 
-        gridShell.addEventListener(
-          "touchstart",
-          (event) => {
-            const touch = event.touches[0];
-            if (!touch) return;
+        function handleTouchStart(event) {
+          const touch = event.touches[0];
+          if (!touch) return;
 
-            const cell = getCellFromPoint(touch.clientX, touch.clientY);
-            if (!cell) return;
+          const cell = getCellFromPoint(touch.clientX, touch.clientY);
+          if (!cell) return;
 
-            event.preventDefault();
-            beginSelection(cell, "touch");
-          },
-          { passive: false }
-        );
+          event.preventDefault();
+          beginSelection(cell, "touch");
+        }
 
-        gridShell.addEventListener(
-          "touchmove",
-          (event) => {
-            if (activeInputMode !== "touch") return;
+        function handleTouchMove(event) {
+          if (activeInputMode !== "touch") return;
 
-            const touch = event.touches[0];
-            if (!touch) return;
+          const touch = event.touches[0];
+          if (!touch) return;
 
-            event.preventDefault();
-            const cell = getCellFromPoint(touch.clientX, touch.clientY);
-            extendSelection(cell);
-          },
-          { passive: false }
-        );
+          event.preventDefault();
+          const cell = getCellFromPoint(touch.clientX, touch.clientY);
+          extendSelection(cell);
+        }
 
-        gridShell.addEventListener("touchend", finishSelection);
-        gridShell.addEventListener("touchcancel", finishSelection);
         window.addEventListener("pointerup", finishSelection);
         window.addEventListener("pointercancel", finishSelection);
+        playAgainButton.onclick = startRound;
+        startRound();
       }
 
       initializeGame(normalizeData(window.APP_DATA || window.MY_APP_DATA || DEFAULT_DATA));
