@@ -14,6 +14,7 @@ import type { AnyAppData } from '../types'
 
 import BalloonLetterPickerEditor from './balloon-letter-picker/BalloonLetterPickerEditor'
 import GroupSortEditor from './group-sort/GroupSortEditor'
+import PairMatchingEditor from './pair-matching/PairMatchingEditor'
 import QuizEditor from './plane-quiz/QuizEditor'
 
 export interface GameRegistryEntry {
@@ -52,6 +53,14 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
     createInitialData: () => ({
       words: [],
       _wordCounter: 0
+    })
+  },
+
+  'pair-matching': {
+    Editor: PairMatchingEditor as GameRegistryEntry['Editor'],
+    createInitialData: () => ({
+      items: [],
+      _itemCounter: 0
     })
   }
 }

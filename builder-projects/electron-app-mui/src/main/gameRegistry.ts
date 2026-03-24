@@ -13,20 +13,43 @@
 
 export type DataTransform = (appData: object) => object
 
+// Helper to recursively remove any keys starting with an underscore
+function omitInternalKeys(obj: object): object {
+  if (Array.isArray(obj)) {
+    return obj.map(omitInternalKeys)
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const newObj: object = {}
+    for (const [k, v] of Object.entries(obj)) {
+      if (!k.startsWith('_')) {
+        newObj[k] = omitInternalKeys(v)
+      }
+    }
+    return newObj
+  }
+  return obj
+}
+
 // ── Add transforms here ───────────────────────────────────────────────────────
 export const GAME_DATA_TRANSFORMS: Record<string, DataTransform> = {
   'balloon-letter-picker': (appData) => {
     // Template expects a flat array of { word, imageUrl, hint }
     const data = appData as { words?: { word: string; imageUrl: string; hint: string }[] }
-    return (data.words ?? []).map(({ word, imageUrl, hint }) => ({ word, imageUrl, hint }))
+    return omitInternalKeys(
+      (data.words ?? []).map(({ word, imageUrl, hint }) => ({ word, imageUrl, hint }))
+    )
   },
   'group-sort': (appData) => {
     // This Template expects same object structure
-    return appData
+    return omitInternalKeys(appData)
   },
   'plane-quiz': (appData) => {
     // This Template expects same object structure
-    return appData
+    return omitInternalKeys(appData)
+  },
+  'pair-matching': (appData) => {
+    // This Template expects same object structure
+    return omitInternalKeys(appData)
   }
 }
 
