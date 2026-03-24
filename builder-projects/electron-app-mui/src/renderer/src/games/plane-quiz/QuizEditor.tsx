@@ -22,8 +22,6 @@ import {
   Typography
 } from '@mui/material'
 import { useCallback } from 'react'
-import { useSettings } from '../context/SettingsContext'
-import { QuizAnswer, QuizAppData, QuizQuestion } from '../types'
 import {
   DroppableZone,
   EmptyState,
@@ -32,8 +30,10 @@ import {
   SidebarTab,
   StickyHeader,
   useEditorShortcuts
-} from './EditorShared'
-import ImagePicker from './ImagePicker'
+} from '../../components/EditorShared'
+import ImagePicker from '../../components/ImagePicker'
+import { useSettings } from '../../context/SettingsContext'
+import { QuizAnswer, QuizAppData, QuizQuestion } from '../../types'
 
 interface Props {
   appData: QuizAppData

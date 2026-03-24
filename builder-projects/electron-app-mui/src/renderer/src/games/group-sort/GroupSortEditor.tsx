@@ -21,8 +21,6 @@ import {
   Typography
 } from '@mui/material'
 import { useCallback, useState } from 'react'
-import { useSettings } from '../context/SettingsContext'
-import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../types'
 import {
   DroppableZone,
   EmptyState,
@@ -31,8 +29,10 @@ import {
   SidebarTab,
   StickyHeader,
   useEditorShortcuts
-} from './EditorShared'
-import ImagePicker from './ImagePicker'
+} from '../../components/EditorShared'
+import ImagePicker from '../../components/ImagePicker'
+import { useSettings } from '../../context/SettingsContext'
+import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../../types'
 
 interface Props {
   appData: GroupSortAppData
@@ -354,7 +354,12 @@ function GroupsTab({
         description="Each group is a sorting category. Items will be sorted into these groups."
         actions={
           <DroppableZone onFileDrop={onAddFromDrop}>
-            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={() => onAdd()}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              size="small"
+              onClick={() => onAdd()}
+            >
               Add Group
             </Button>
           </DroppableZone>

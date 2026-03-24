@@ -28,6 +28,7 @@ import {
 } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { GAME_REGISTRY } from '../games/registry'
 import { GameTemplate, RecentProject } from '../types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -125,14 +126,7 @@ export default function HomePage() {
   const createNewProject = async (folder: string, template: GameTemplate) => {
     const projectPath = `${folder}/project.mgproj`
     const now = new Date().toISOString()
-    const initialAppData =
-      template.gameType === 'group-sort'
-        ? { groups: [], items: [], _groupCounter: 0, _itemCounter: 0 }
-        : template.gameType === 'plane-quiz'
-          ? { questions: [], _questionCounter: 0 }
-          : template.gameType === 'group-sort'
-            ? {}
-            : {}
+    const initialAppData = GAME_REGISTRY[template.id]?.createInitialData() ?? {}
     const newProject = {
       version: '1.0.0',
       templateId: template.id,

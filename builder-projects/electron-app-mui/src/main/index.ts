@@ -2,6 +2,7 @@ import archiver from 'archiver'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
+import { prepareAppDataForTemplate } from './gameRegistry'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -94,38 +95,37 @@ function injectAppData(html: string, appData: object): string {
   return html.replace(/<script/, scriptTag + '\n<script')
 }
 
-/**
- * For templates that expect a different data shape at runtime than what we store internally,
- * transform the appData before injection/export.
- */
-function prepareAppDataForTemplate(templateId: string, appData: object): object {
-  if (templateId === 'balloon-letter-picker') {
-    // Template expects a flat array of { word, imageUrl, hint }
-    const data = appData as { words?: { word: string; imageUrl: string; hint: string }[] }
-    return (data.words ?? []).map(({ word, imageUrl, hint }) => ({ word, imageUrl, hint }))
-  }
-  return appData
-}
-
 function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
   if (obj === null || obj === undefined) return obj
   if (Array.isArray(obj)) return obj.map((item) => normalizeAssetPaths(item, projectDir))
   if (typeof obj !== 'object') return obj
 
   const result: Record<string, unknown> = {}
+
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    if (typeof value === 'string' && value.startsWith('assets/')) {
-      const absPath = path.join(projectDir, value)
-      result[key] = `file://${absPath.replace(/\\/g, '/')}`
-    } else if (key === 'imageUrl' && typeof value === 'string' && value.startsWith('./assets/')) {
-      // balloon-letter-picker stores imageUrl as './assets/...' relative
-      const rel = value.replace(/^\.\//, '')
-      const absPath = path.join(projectDir, rel)
-      result[key] = `file://${absPath.replace(/\\/g, '/')}`
-    } else {
-      result[key] = normalizeAssetPaths(value, projectDir)
+    // 1. Check if the key matches: (img OR image) AND (src OR path OR url)
+    const lowerKey = key.toLowerCase()
+    const isImageKey = /(img|image).*(src|path|url)/.test(lowerKey)
+
+    if (isImageKey && typeof value === 'string') {
+      // 2. Strip leading "./" if present
+      const cleanPath = value.startsWith('./') ? value.slice(2) : value
+
+      // 3. Check if the path starts with the allowed directories
+      const isTargetDir = /^(images|data|assets)/.test(cleanPath)
+
+      if (isTargetDir) {
+        const absPath = path.join(projectDir, cleanPath)
+        // Ensure forward slashes for the file:// URL scheme
+        result[key] = `file://${absPath.split(path.sep).join('/')}`
+        continue // Skip recursion for this value
+      }
     }
+
+    // Recurse for nested objects/unmatched keys
+    result[key] = normalizeAssetPaths(value, projectDir)
   }
+
   return result
 }
 

@@ -15,8 +15,6 @@ import {
   Typography
 } from '@mui/material'
 import { useCallback } from 'react'
-import { useSettings } from '../context/SettingsContext'
-import { BalloonLetterPickerAppData, BalloonWord } from '../types'
 import {
   DroppableZone,
   EmptyState,
@@ -24,8 +22,10 @@ import {
   SidebarTab,
   StickyHeader,
   useEditorShortcuts
-} from './EditorShared'
-import ImagePicker from './ImagePicker'
+} from '../../components/EditorShared'
+import ImagePicker from '../../components/ImagePicker'
+import { useSettings } from '../../context/SettingsContext'
+import { BalloonLetterPickerAppData, BalloonWord } from '../../types'
 
 interface Props {
   appData: BalloonLetterPickerAppData
@@ -263,9 +263,7 @@ function WordCard({
 
   // Derive relative path from imageUrl for ImagePicker's value prop
   // imageUrl is like './images/words/jump.png', relativePath is 'images/words/jump.png'
-  const imageRelative = word.imageUrl
-    ? word.imageUrl.replace(/^\.\//, '')
-    : null
+  const imageRelative = word.imageUrl ? word.imageUrl.replace(/^\.\//, '') : null
 
   return (
     <Paper
@@ -305,11 +303,7 @@ function WordCard({
               size="small"
               error={!!isInvalid || !word.word.trim()}
               helperText={
-                !word.word.trim()
-                  ? 'Required'
-                  : isInvalid
-                    ? 'Only A–Z letters allowed'
-                    : ''
+                !word.word.trim() ? 'Required' : isInvalid ? 'Only A–Z letters allowed' : ''
               }
               inputProps={{ style: { fontFamily: 'monospace', letterSpacing: 4, fontWeight: 700 } }}
               inputRef={(el) => {
