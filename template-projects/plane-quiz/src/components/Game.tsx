@@ -7,11 +7,7 @@ declare global {
       DATA?: {
         playerName?: string;
         maxLives?: number;
-        questions?: Array<{
-          question: string;
-          answers: string[];
-          correctAnswer: string;
-        }>;
+        questions?: Question[];
       };
     };
   }
@@ -83,6 +79,13 @@ const Game: React.FC = () => {
   // Speed control states
   const [gameSpeed, setGameSpeed] = useState<number>(1);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  
+  // Auto-increasing speed states
+  const [baseGameSpeed, setBaseGameSpeed] = useState<number>(2);
+  const [answeredCorrectCount, setAnsweredCorrectCount] = useState<number>(0);
+
+  // Thêm ref này cùng với các ref khác
+  const cloudSubPixelXRef = useRef<Map<number, number>>(new Map());
 
   const sampleQuestions: Question[] = [
     {
@@ -250,18 +253,7 @@ const Game: React.FC = () => {
   // State cho form nhập câu hỏi
   const [customQuestions, setCustomQuestions] = useState<Question[]>(() => {
     if (gameData.questions && gameData.questions.length > 0) {
-      return gameData.questions.map((q, index) => ({
-        id: String(index + 1),
-        question: q.question,
-        imagePath: null,
-        answers: q.answers.map((text, idx) => ({
-          id: `${index + 1}_${idx + 1}`,
-          text: text,
-          isCorrect: text === q.correctAnswer
-        })),
-        multipleCorrect: false,
-        _answerCounter: q.answers.length
-      }));
+      return gameData.questions;
     }
     return sampleQuestions;
   });
@@ -328,6 +320,7 @@ const Game: React.FC = () => {
   const PLAYER_HITBOX_X = PLAYER_X + (PLAYER_WIDTH - PLAYER_HITBOX_WIDTH) / 2;
 
   const currentQuestion = questions[currentQuestionIndex];
+  const totalQuestions = questions.length;
 
   // Hàm reset game - dùng cho chơi lại
   const resetGame = () => {
@@ -344,8 +337,11 @@ const Game: React.FC = () => {
     setIsInvincible(false);
     setInvincibleTimer(0);
     setGameSpeed(1);
+    setBaseGameSpeed(2);
+    setAnsweredCorrectCount(0);
     setIsPaused(false);
     cloudsRef.current = [];
+    cloudSubPixelXRef.current.clear();
     backgroundXRef.current = 0;
     
     if (invincibleTimeoutRef.current) {
@@ -699,6 +695,19 @@ const Game: React.FC = () => {
       setResultType('success');
       setShowResult(true);
       
+      // Tăng số câu trả lời đúng
+      const newCorrectCount = answeredCorrectCount + 1;
+      setAnsweredCorrectCount(newCorrectCount);
+      
+      // Tính tốc độ mới: bắt đầu từ 1, tăng dần đến 6 ở câu cuối
+      // Công thức: speed = 1 + (5 * (số câu đã đúng / tổng số câu))
+      const maxSpeed = 8;
+      const minSpeed = 2;
+      const progress = newCorrectCount / totalQuestions;
+      const newSpeed = minSpeed + (maxSpeed - minSpeed) * progress;
+      const finalSpeed = Math.min(maxSpeed, Math.max(minSpeed, newSpeed));
+      setBaseGameSpeed(finalSpeed);
+      
       createExplosion(cloud.x, cloud.y, cloud.width, cloud.height);
       
       setTimeout(() => {
@@ -736,7 +745,7 @@ const Game: React.FC = () => {
         setShowResult(false);
       }, 1000);
     }
-  }, [currentQuestion, lives, currentQuestionIndex, isInvincible, questions.length]);
+  }, [currentQuestion, lives, currentQuestionIndex, isInvincible, questions.length, answeredCorrectCount, totalQuestions]);
 
   const updatePlayer = useCallback(() => {
     let newY = playerY;
@@ -757,83 +766,103 @@ const Game: React.FC = () => {
   }, [playerY, canvasSize.height, PLAYER_HEIGHT, PLAYER_SPEED]);
 
   const updateGame = useCallback(() => {
-    if (!isPlaying || gameOver || gameWin || isPaused) return;
+  if (!isPlaying || gameOver || gameWin || isPaused) return;
 
-    updatePlayer();
+  updatePlayer();
 
-    // Apply speed multiplier
-    const currentBackgroundSpeed = BASE_BACKGROUND_SPEED * gameSpeed;
-    const currentCloudSpeed = BASE_CLOUD_SPEED * gameSpeed;
+  // Sử dụng baseGameSpeed (tăng dần) cho tốc độ game
+  const currentGameSpeed = baseGameSpeed;
+  const currentBackgroundSpeed = BASE_BACKGROUND_SPEED * currentGameSpeed;
+  const currentCloudSpeed = BASE_CLOUD_SPEED * currentGameSpeed;
+  
+  backgroundXRef.current -= currentBackgroundSpeed;
+  if (backgroundXRef.current <= -canvasSize.width) {
+    backgroundXRef.current = 0;
+  }
+
+  if (currentQuestion && cloudsRef.current.length < MAX_CLOUDS && !gameWin) {
+    const existingAnswers = cloudsRef.current.map(c => c.answer);
+    const answerTexts = getAnswerTexts(currentQuestion);
+    const availableAnswers = answerTexts.filter(a => !existingAnswers.includes(a));
     
-    backgroundXRef.current -= currentBackgroundSpeed;
-    if (backgroundXRef.current <= -canvasSize.width) {
-      backgroundXRef.current = 0;
-    }
-
-    if (currentQuestion && cloudsRef.current.length < MAX_CLOUDS && !gameWin) {
-      const existingAnswers = cloudsRef.current.map(c => c.answer);
-      const answerTexts = getAnswerTexts(currentQuestion);
-      const availableAnswers = answerTexts.filter(a => !existingAnswers.includes(a));
+    const spawnChance = 0.015 * Math.min(currentGameSpeed, 3);
+    if (availableAnswers.length > 0 && Math.random() < spawnChance) {
+      const randomIndex = Math.floor(Math.random() * availableAnswers.length);
+      const newCloud = createCloud(availableAnswers[randomIndex]);
       
-      // Spawn rate increases with speed
-      const spawnChance = 0.015 * Math.min(gameSpeed, 3);
-      if (availableAnswers.length > 0 && Math.random() < spawnChance) {
-        const randomIndex = Math.floor(Math.random() * availableAnswers.length);
-        const newCloud = createCloud(availableAnswers[randomIndex]);
+      if (newCloud) {
+        const tooClose = cloudsRef.current.some(c => 
+          Math.abs(c.y - newCloud.y) < CLOUD_HEIGHT * 1.2
+        );
         
-        if (newCloud) {
-          const tooClose = cloudsRef.current.some(c => 
-            Math.abs(c.y - newCloud.y) < CLOUD_HEIGHT * 1.2
-          );
-          
-          if (!tooClose) {
-            cloudsRef.current = [...cloudsRef.current, newCloud];
-          }
+        if (!tooClose) {
+          cloudsRef.current = [...cloudsRef.current, newCloud];
+          // Khởi tạo sub-pixel cho mây mới
+          cloudSubPixelXRef.current.set(newCloud.id, newCloud.x);
         }
       }
     }
+  }
 
-    if (!isInvincible) {
-      const playerHitboxY = playerY + (PLAYER_HEIGHT - PLAYER_HITBOX_HEIGHT) / 2;
-      
-      cloudsRef.current = cloudsRef.current
-        .map(cloud => {
-          // Move clouds with current speed
-          return { ...cloud, x: cloud.x - currentCloudSpeed };
-        })
-        .filter(cloud => {
-          if (cloud.x + cloud.width < 0) return false;
+  if (!isInvincible) {
+    const playerHitboxY = playerY + (PLAYER_HEIGHT - PLAYER_HITBOX_HEIGHT) / 2;
+    
+    cloudsRef.current = cloudsRef.current
+      .map(cloud => {
+        // Lấy vị trí sub-pixel hiện tại, nếu chưa có thì dùng cloud.x
+        let subX = cloudSubPixelXRef.current.get(cloud.id) ?? cloud.x;
+        subX -= currentCloudSpeed;
+        // Lưu lại vị trí sub-pixel
+        cloudSubPixelXRef.current.set(cloud.id, subX);
+        return { ...cloud, x: subX };
+      })
+      .filter(cloud => {
+        if (cloud.x + cloud.width < 0) {
+          // Xóa sub-pixel khi xóa mây
+          cloudSubPixelXRef.current.delete(cloud.id);
+          return false;
+        }
+        
+        if (cloud.isCorrect === null) {
+          // Vẫn dùng cloud.x (giá trị sub-pixel) để tính va chạm
+          const cloudHitboxWidth = cloud.width * HITBOX_SCALE;
+          const cloudHitboxHeight = cloud.height * HITBOX_SCALE;
+          const cloudHitboxX = cloud.x + (cloud.width - cloudHitboxWidth) / 2;
+          const cloudHitboxY = cloud.y + (cloud.height - cloudHitboxHeight) / 2;
           
-          if (cloud.isCorrect === null) {
-            const cloudHitboxWidth = cloud.width * HITBOX_SCALE;
-            const cloudHitboxHeight = cloud.height * HITBOX_SCALE;
-            const cloudHitboxX = cloud.x + (cloud.width - cloudHitboxWidth) / 2;
-            const cloudHitboxY = cloud.y + (cloud.height - cloudHitboxHeight) / 2;
-            
-            const collision = (
-              PLAYER_HITBOX_X < cloudHitboxX + cloudHitboxWidth &&
-              PLAYER_HITBOX_X + PLAYER_HITBOX_WIDTH > cloudHitboxX &&
-              playerHitboxY < cloudHitboxY + cloudHitboxHeight &&
-              playerHitboxY + PLAYER_HITBOX_HEIGHT > cloudHitboxY
-            );
+          const collision = (
+            PLAYER_HITBOX_X < cloudHitboxX + cloudHitboxWidth &&
+            PLAYER_HITBOX_X + PLAYER_HITBOX_WIDTH > cloudHitboxX &&
+            playerHitboxY < cloudHitboxY + cloudHitboxHeight &&
+            playerHitboxY + PLAYER_HITBOX_HEIGHT > cloudHitboxY
+          );
 
-            if (collision) {
-              handleAnswer(cloud);
-            }
+          if (collision) {
+            handleAnswer(cloud);
           }
-          
-          return true;
-        });
-    } else {
-      cloudsRef.current = cloudsRef.current
-        .map(cloud => {
-          return { ...cloud, x: cloud.x - currentCloudSpeed };
-        })
-        .filter(cloud => cloud.x + cloud.width > 0);
-    }
+        }
+        
+        return true;
+      });
+  } else {
+    cloudsRef.current = cloudsRef.current
+      .map(cloud => {
+        let subX = cloudSubPixelXRef.current.get(cloud.id) ?? cloud.x;
+        subX -= currentCloudSpeed;
+        cloudSubPixelXRef.current.set(cloud.id, subX);
+        return { ...cloud, x: subX };
+      })
+      .filter(cloud => {
+        if (cloud.x + cloud.width < 0) {
+          cloudSubPixelXRef.current.delete(cloud.id);
+          return false;
+        }
+        return true;
+      });
+  }
 
-    animationRef.current = requestAnimationFrame(updateGame);
-  }, [isPlaying, gameOver, gameWin, playerY, currentQuestion, updatePlayer, handleAnswer, createCloud, canvasSize.width, canvasSize.height, isInvincible, gameSpeed, isPaused]);
+  animationRef.current = requestAnimationFrame(updateGame);
+}, [isPlaying, gameOver, gameWin, playerY, currentQuestion, updatePlayer, handleAnswer, createCloud, canvasSize.width, canvasSize.height, isInvincible, baseGameSpeed, isPaused]);
 
   useEffect(() => {
     if (isPlaying && !gameOver && !gameWin) {
@@ -863,29 +892,37 @@ const Game: React.FC = () => {
       }
 
       if (cloudImage.current.complete) {
-        cloudsRef.current.forEach(cloud => {
-          if (cloud.isCorrect !== null) ctx.globalAlpha = 0.6;
-          
-          ctx.drawImage(cloudImage.current, cloud.x, cloud.y, cloud.width, cloud.height);
-          
-          ctx.font = `${Math.min(20, cloud.height * 0.3)}px Arial`;
-          ctx.fillStyle = cloud.isCorrect !== null ? '#666' : 'black';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(cloud.answer, cloud.x + cloud.width / 2, cloud.y + cloud.height / 2);
+  cloudsRef.current.forEach(cloud => {
+    if (cloud.isCorrect !== null) ctx.globalAlpha = 0.6;
+    
+    // Làm tròn tọa độ X để vẽ mượt hơn
+    const drawX = Math.round(cloud.x);
+    ctx.drawImage(cloudImage.current, drawX, cloud.y, cloud.width, cloud.height);
+    
+    // Font chữ đậm và to hơn
+    ctx.font = `bold ${Math.min(28, cloud.height * 0.45)}px "Segoe UI", "Arial", sans-serif`;
+    ctx.fillStyle = cloud.isCorrect !== null ? '#555' : '#111';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Thêm shadow cho chữ
+    ctx.shadowBlur = 2;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillText(cloud.answer, drawX + cloud.width / 2, cloud.y + cloud.height / 2);
+    ctx.shadowBlur = 0;
 
-          if (cloud.isCorrect !== null) {
-            const iconSize = cloud.height * 0.4;
-            if (cloud.isCorrect && tickImage.current.complete) {
-              ctx.drawImage(tickImage.current, cloud.x + cloud.width - iconSize, cloud.y, iconSize, iconSize);
-            } else if (cloud.isCorrect === false && crossImage.current.complete) {
-              ctx.drawImage(crossImage.current, cloud.x + cloud.width - iconSize, cloud.y, iconSize, iconSize);
-            }
-          }
-          
-          ctx.globalAlpha = 1;
-        });
+    if (cloud.isCorrect !== null) {
+      const iconSize = cloud.height * 0.4;
+      if (cloud.isCorrect && tickImage.current.complete) {
+        ctx.drawImage(tickImage.current, drawX + cloud.width - iconSize, cloud.y, iconSize, iconSize);
+      } else if (cloud.isCorrect === false && crossImage.current.complete) {
+        ctx.drawImage(crossImage.current, drawX + cloud.width - iconSize, cloud.y, iconSize, iconSize);
       }
+    }
+    
+    ctx.globalAlpha = 1;
+  });
+}
 
       if (playerImage.current.complete && !gameOver && !gameWin) {
         if (isInvincible) {
@@ -938,12 +975,34 @@ const Game: React.FC = () => {
       ctx.lineWidth = 2;
       ctx.strokeText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, 100);
       ctx.fillText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, 100);
+      
+      // Hiển thị tốc độ hiện tại
+      ctx.font = `${Math.min(20, canvasSize.height * 0.03)}px Arial`;
+      ctx.fillStyle = '#ffd700';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+      ctx.strokeText(`Speed: ${baseGameSpeed.toFixed(1)}x`, canvas.width - 150, 100);
+      ctx.fillText(`Speed: ${baseGameSpeed.toFixed(1)}x`, canvas.width - 150, 100);
+      
+      // Vẽ thanh tiến trình tốc độ
+      const speedPercent = (baseGameSpeed - 1) / 5; // 1 -> 0%, 6 -> 100%
+      const barWidth = 130;
+      const barHeight = 6;
+      const barX = canvas.width - 150;
+      const barY = 115;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(barX, barY, barWidth * Math.min(1, Math.max(0, speedPercent)), barHeight);
 
       if (isInvincible && invincibleTimer > 0) {
         ctx.font = `bold ${Math.min(24, canvasSize.height * 0.04)}px Arial`;
         ctx.fillStyle = '#ffd700';
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 2;
+        ctx.strokeText(`Invincible: ${invincibleTimer}s`, canvas.width / 2, 150);
+        ctx.fillText(`Invincible: ${invincibleTimer}s`, canvas.width / 2, 150);
       }
 
       if (showResult && resultMessage) {
@@ -956,9 +1015,9 @@ const Game: React.FC = () => {
       }
     };
 
-    const interval = setInterval(draw, 16);
+    const interval = setInterval(draw, 1);
     return () => clearInterval(interval);
-  }, [isPlaying, gameOver, gameWin, playerY, canvasSize, explosions, currentQuestion, score, lives, showResult, resultMessage, resultType, currentQuestionIndex, isInvincible, invincibleTimer, questions.length]);
+  }, [isPlaying, gameOver, gameWin, playerY, canvasSize, explosions, currentQuestion, score, lives, showResult, resultMessage, resultType, currentQuestionIndex, isInvincible, invincibleTimer, questions.length, baseGameSpeed]);
 
   // Tự động bắt đầu game khi component được load
   useEffect(() => {
@@ -1143,8 +1202,8 @@ const Game: React.FC = () => {
             <p>Hit the clouds to select an answer</p>
             <p>❤️ You have 3 lives</p>
             <p>✅ Answer correctly to proceed</p>
-            <p>⚡ Speed buttons: Pause, x1, x2, x4, x6</p>
-            <p>⌨️ Shortcuts: Space (Pause/Resume), 1,2,3,4 (Speed), A/D (Cycle)</p>
+            <p>⚡ Speed increases with each correct answer!</p>
+            <p>⌨️ Shortcuts: Space (Pause/Resume), A/D (Speed override)</p>
           </div>
         </div>
       )}
