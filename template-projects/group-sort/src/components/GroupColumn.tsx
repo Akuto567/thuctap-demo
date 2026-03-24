@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
-import { layoutTransition } from "../config";
 import type { GroupColumnProps } from "../types/components";
 
 const GroupColumn: React.FC<GroupColumnProps> = ({ group, items }) => {
@@ -25,14 +24,17 @@ const GroupColumn: React.FC<GroupColumnProps> = ({ group, items }) => {
       </div>
 
       <div className="flex-1 w-full p-4 overflow-y-auto flex flex-col items-center gap-4">
+        {/* No layoutId here at all — items simply pop in.
+            The "fly" is handled entirely by the DragOverlay animation;
+            this pop-in fires right as the overlay finishes shrinking to zero,
+            creating a seamless handoff. */}
         <AnimatePresence>
           {items.map((item) => (
             <motion.div
               key={item.id}
-              layoutId={item.id}
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={layoutTransition}
+              transition={{ type: "spring", stiffness: 450, damping: 28 }}
               className="w-32 h-32 shrink-0 flex items-center justify-center border-4 border-green-400 bg-white rounded-2xl shadow"
             >
               <img

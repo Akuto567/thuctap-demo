@@ -1,33 +1,30 @@
 import { useDraggable } from "@dnd-kit/core";
-import { motion } from "framer-motion";
 import type { Item } from "../types/objects";
-import { layoutTransition } from "../config";
 
 interface Props {
   item: Item;
   isDragging?: boolean;
 }
 
-// Component hiển thị UI thuần túy
+// No layoutId — the sidebar motion.div wrapper owns the layout animation.
+// Keeping it here too would cause Framer Motion to double-animate.
 export const ItemCard: React.FC<Props & { style?: React.CSSProperties }> = ({
   item,
   isDragging,
   style,
 }) => (
-  <motion.div
-    layoutId={item.id}
-    className={`w-32 h-32 shrink-0 flex items-center justify-center border-4 border-yellow-400 rounded-3xl bg-white shadow-lg select-none cursor-grab active:cursor-grabbing ${
+  <div
+    className={`w-32 h-32 shrink-0 flex items-center justify-center border-4 border-yellow-400 rounded-3xl bg-white shadow-lg select-none cursor-grab active:cursor-grabbing transition-opacity ${
       isDragging ? "opacity-30" : "opacity-100"
     }`}
     style={style}
-    transition={layoutTransition}
   >
     <img
       src={item.imagePath}
       alt={item.name}
       className="w-24 h-24 object-contain pointer-events-none"
     />
-  </motion.div>
+  </div>
 );
 
 const DraggableItem: React.FC<{ item: Item }> = ({ item }) => {
