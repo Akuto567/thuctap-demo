@@ -103,9 +103,9 @@ function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
   const result: Record<string, unknown> = {}
 
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    // 1. Check if the key matches: (img OR image) AND (src OR path OR url)
+    // 1. Check if the key matches
     const lowerKey = key.toLowerCase()
-    const isImageKey = /(img|image).*(src|path|url)/.test(lowerKey)
+    const isImageKey = /(img|image|src|path|url)/.test(lowerKey)
 
     if (isImageKey && typeof value === 'string') {
       // 2. Strip leading "./" if present

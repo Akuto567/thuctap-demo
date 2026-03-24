@@ -20,6 +20,7 @@ BUILDER_TEMPLATES="$REPO_ROOT/builder-projects/electron-app-mui/templates"
 GAMES=(
   "template-projects/group-sort|group-sort"
   "template-projects/plane-quiz|plane-quiz"
+  "template-projects/balloon-letter-picker|balloon-letter-picker"
   # "template-projects/my-new-game|my-new-game"
 )
 
