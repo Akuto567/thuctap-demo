@@ -9,7 +9,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { MY_APP_DATA } from "../data";
 import type { Item } from "../types/objects";
 import DraggableItem, { ItemCard } from "./DraggableItem";
@@ -28,6 +28,10 @@ const MatchingGameDemo: React.FC = () => {
     msg: string;
   } | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Use ref to manage feedback timeout
+  const feedbackTimeoutRef = useRef<number | null>(null);
 
   // Cấu hình Sensor để không bị xung đột với scroll trên mobile
   const sensors = useSensors(
@@ -64,8 +68,19 @@ const MatchingGameDemo: React.FC = () => {
   };
 
   const showFeedback = (type: "correct" | "incorrect", msg: string) => {
+    // Clear existing timeout if any
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    // Set new feedback (replaces old one immediately)
     setFeedback({ type, msg });
-    setTimeout(() => setFeedback(null), 1500);
+
+    // Set timeout to hide feedback
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setFeedback(null);
+      feedbackTimeoutRef.current = null;
+    }, 1500);
   };
 
   const handleRetry = () => {
@@ -76,10 +91,11 @@ const MatchingGameDemo: React.FC = () => {
     );
     setShowSummary(false);
     setFeedback(null);
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
   };
-
-  // Check if game is finished
-  const isGameFinished = unansweredItems.length === 0 && !showSummary;
 
   // Calculate summary data
   const getSummaryData = () => {
@@ -95,15 +111,35 @@ const MatchingGameDemo: React.FC = () => {
     return { totalItems, matchedItems, groupsSummary };
   };
 
-  // Show summary screen when game is finished
-  if (isGameFinished && !showSummary) {
-    setShowSummary(true);
-  }
+  // Check if game is finished and animations are complete
+  const isGameFinished =
+    unansweredItems.length === 0 && !showSummary && !isAnimating;
+
+  // Handle game completion with animation delay
+  React.useEffect(() => {
+    if (isGameFinished) {
+      // Wait for all animations to complete before showing summary
+      const animationDelay = setTimeout(() => {
+        setShowSummary(true);
+      }, 1000); // Give time for final animations to complete
+
+      return () => clearTimeout(animationDelay);
+    }
+  }, [unansweredItems.length, showSummary, isAnimating]);
+
+  // Track animation state for smooth transitions
+  React.useEffect(() => {
+    if (unansweredItems.length > 0) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [unansweredItems]);
 
   if (showSummary) {
     const summary = getSummaryData();
     return (
-      <div className="w-screen h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-6">
+      <div className="w-screen h-screen bg-linear-to-br from-blue-100 to-purple-100 flex items-center justify-center p-6">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -127,7 +163,7 @@ const MatchingGameDemo: React.FC = () => {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-green-400 to-green-500 rounded-2xl p-6 text-center text-white"
+              className="bg-linear-to-br from-green-400 to-green-500 rounded-2xl p-6 text-center text-white"
             >
               <div className="text-4xl font-bold mb-2">
                 {summary.matchedItems}
@@ -138,7 +174,7 @@ const MatchingGameDemo: React.FC = () => {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl p-6 text-center text-white"
+              className="bg-linear-to-br from-blue-400 to-blue-500 rounded-2xl p-6 text-center text-white"
             >
               <div className="text-4xl font-bold mb-2">
                 {summary.totalItems}
@@ -149,7 +185,7 @@ const MatchingGameDemo: React.FC = () => {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="bg-gradient-to-br from-purple-400 to-purple-500 rounded-2xl p-6 text-center text-white"
+              className="bg-linear-to-br from-purple-400 to-purple-500 rounded-2xl p-6 text-center text-white"
             >
               <div className="text-4xl font-bold mb-2">
                 {Math.round((summary.matchedItems / summary.totalItems) * 100)}%
@@ -213,7 +249,7 @@ const MatchingGameDemo: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleRetry}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transition-all"
+              className="bg-linear-to-r from-blue-500 to-purple-500 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transition-all"
             >
               🔄 Chơi Lại
             </motion.button>
@@ -265,14 +301,15 @@ const MatchingGameDemo: React.FC = () => {
           </div>
         </div>
 
-        {/* FEEDBACK OVERLAY */}
+        {/* FEEDBACK OVERLAY - Moved to top of screen */}
         <AnimatePresence>
           {feedback && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-100 px-10 py-6 rounded-full text-white text-3xl font-bold shadow-2xl ${
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full text-white text-xl font-bold shadow-2xl ${
                 feedback.type === "correct" ? "bg-green-500" : "bg-red-500"
               }`}
             >
