@@ -27,6 +27,11 @@ export interface ElectronAPI {
     projectDir: string
     mode: 'folder' | 'zip'
   }) => Promise<{ success?: boolean; canceled?: boolean; path?: string }>
+  previewProject: (opts: {
+    templateId: string
+    appData: object
+    projectDir: string
+  }) => Promise<void>
 }
 
 declare global {
