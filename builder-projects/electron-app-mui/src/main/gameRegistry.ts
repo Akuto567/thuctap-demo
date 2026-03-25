@@ -35,9 +35,9 @@ export const GAME_DATA_TRANSFORMS: Record<string, DataTransform> = {
   // Balloon Letter Picker
   'balloon-letter-picker': (appData) => {
     // Template expects a flat array of { word, imageUrl, hint }
-    const data = appData as { words?: { word: string; imageUrl: string; hint: string }[] }
+    const data = appData as { words?: { word: string; imagePath: string; hint: string }[] }
     return omitInternalKeys(
-      (data.words ?? []).map(({ word, imageUrl, hint }) => ({ word, imageUrl, hint }))
+      (data.words ?? []).map(({ word, imagePath, hint }) => ({ word, imageUrl: imagePath, hint }))
     )
   },
 

@@ -50,7 +50,7 @@ export interface QuizAppData {
 export interface BalloonWord {
   id: string
   word: string
-  imageUrl: string // relative path, e.g. './images/words/jump.png'
+  imagePath: string // relative path, e.g. './images/words/jump.png'
   hint: string
 }
 export interface BalloonLetterPickerAppData {

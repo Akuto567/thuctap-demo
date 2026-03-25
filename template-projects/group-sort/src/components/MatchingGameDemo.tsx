@@ -125,7 +125,7 @@ const MatchingGameDemo: React.FC = () => {
 
       return () => clearTimeout(animationDelay);
     }
-  }, [unansweredItems.length, showSummary, isAnimating]);
+  }, [unansweredItems.length, showSummary, isAnimating, isGameFinished]);
 
   // Track animation state for smooth transitions
   React.useEffect(() => {
