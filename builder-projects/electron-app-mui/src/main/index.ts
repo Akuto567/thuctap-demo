@@ -1,5 +1,5 @@
 import archiver from 'archiver'
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { prepareAppDataForTemplate } from './gameRegistry'
@@ -135,45 +135,14 @@ function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
   return result
 }
 
-// ── IPC: Preview ─────────────────────────────────────────────────────────────
-ipcMain.handle(
-  'preview-project',
-  async (
-    _,
-    opts: {
-      templateId: string
-      appData: object
-      projectDir: string
-    }
-  ): Promise<{ success: boolean }> => {
-    const { templateId, appData, projectDir } = opts
-    const gameDir = getGameDir(templateId)
-    const htmlPath = path.join(gameDir, 'index.html')
-    if (!fs.existsSync(htmlPath)) throw new Error(`Template HTML not found for: ${templateId}`)
-
-    const sanitizedData = normalizeAssetPaths(appData, projectDir)
-    const templateData = prepareAppDataForTemplate(templateId, sanitizedData as object)
-    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
-
-    const previewWindow = new BrowserWindow({
-      width: 1100,
-      height: 760,
-      title: `${templateId} Preview`,
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        webSecurity: false
-      }
-    })
-
-    // Load HTML directly from memory; resolve relative paths to template game folder
-    previewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(injectedHtml)}`, {
-      baseURLForDataURL: `file://${gameDir.replace(/\\/g, '/')}/`
-    })
-
-    return { success: true }
+// Register the protocol early
+// Note: This only needs to be done ONCE in your main entry point
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'preview-project',
+    privileges: { standard: true /* , secure: true, supportFetchAPI: true */ }
   }
-)
+])
 
 // ── Window ────────────────────────────────────────────────────────────────────
 function createWindow(): void {
@@ -200,7 +169,29 @@ function createWindow(): void {
   }
 }
 
+const projectPreviewSessions = new Map<string, { html: string; gameDir: string }>()
+
 app.whenReady().then(() => {
+  protocol.handle('preview-project', async (request) => {
+    const url = new URL(request.url)
+    const sessionId = url.hostname // e.g., session-12345
+    const pathName = url.pathname // e.g., /index.html or /css/style.css
+
+    const session = projectPreviewSessions.get(sessionId)
+    if (!session) return new Response('Session expired', { status: 404 })
+
+    // Serve HTML from memory
+    if (pathName === '/' || pathName === '/index.html') {
+      return new Response(session.html, {
+        headers: { 'Content-Type': 'text/html' }
+      })
+    }
+
+    // Serve assets from the specific directory saved for THIS session
+    const filePath = path.join(session.gameDir, pathName)
+    return net.fetch(`file://${filePath}`)
+  })
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -324,7 +315,7 @@ ipcMain.handle(
     const assetsDir = path.join(projectDir, 'assets')
     fs.mkdirSync(assetsDir, { recursive: true })
     const ext = path.extname(sourcePath).toLowerCase()
-    const uniqueName = `${desiredNamePrefix}-${Date.now()}`
+    const uniqueName = `${desiredNamePrefix}-${Date.now()}-${Math.random()}`
     const destName = `${uniqueName}${ext}`
     fs.copyFileSync(sourcePath, path.join(assetsDir, destName))
     return `assets/${destName}`
@@ -346,6 +337,45 @@ ipcMain.handle('settings-write-global', async (_e, data: object) => {
 // ── IPC: Window title ─────────────────────────────────────────────────────────
 ipcMain.handle('set-title', async (_e, title: string) => {
   mainWindow?.setTitle(title)
+})
+
+// ── IPC: Preview ─────────────────────────────────────────────────────────────
+ipcMain.handle('preview-project', async (_, opts) => {
+  const { templateId, appData, projectDir } = opts
+  const gameDir = getGameDir(templateId)
+  const htmlPath = path.join(gameDir, 'index.html')
+
+  if (!fs.existsSync(htmlPath)) throw new Error('Template not found')
+
+  const sanitizedData = normalizeAssetPaths(appData, projectDir)
+  const templateData = prepareAppDataForTemplate(templateId, sanitizedData as object)
+  const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
+
+  // Unique ID for this specific window instance
+  const sessionId = `session-${Date.now()}-${Math.random()}`
+
+  // Save both the content AND the path so the protocol knows where to look for assets
+  projectPreviewSessions.set(sessionId, {
+    html: injectedHtml,
+    gameDir: gameDir
+  })
+
+  const previewWindow = new BrowserWindow({
+    width: 1100,
+    height: 760,
+    webPreferences: {
+      contextIsolation: true,
+      webSecurity: false // Required to let preview-project:// load file:// assets
+    }
+  })
+
+  previewWindow.loadURL(`preview-project://${sessionId}/index.html`)
+
+  previewWindow.on('closed', () => {
+    projectPreviewSessions.delete(sessionId)
+  })
+
+  return { success: true }
 })
 
 // ── IPC: Export ───────────────────────────────────────────────────────────────
