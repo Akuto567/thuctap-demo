@@ -3227,7 +3227,6 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^7.0.1"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     framer-motion: "npm:^12.38.0"
-    microdiff: "npm:^1.5.0"
     prettier: "npm:^3.7.4"
     react: "npm:^19.2.1"
     react-dom: "npm:^19.2.1"
@@ -5397,13 +5396,6 @@ __metadata:
   version: 1.1.0
   resolution: "math-intrinsics@npm:1.1.0"
   checksum: 10c0/7579ff94e899e2f76ab64491d76cf606274c874d8f2af4a442c016bd85688927fcfca157ba6bf74b08e9439dc010b248ce05b96cc7c126a354c3bae7fcb48b7f
-  languageName: node
-  linkType: hard
-
-"microdiff@npm:^1.5.0":
-  version: 1.5.0
-  resolution: "microdiff@npm:1.5.0"
-  checksum: 10c0/5f55ca049451d63abf79fd1692808e1052180fbedfc91d9fcab9f02df0dd902aa6a4e30199fd345d1f91982842b12d85ffa86785e38d7dbfb6d59280074f9129
   languageName: node
   linkType: hard
 

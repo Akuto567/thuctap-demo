@@ -5,30 +5,30 @@ import ExtensionIcon from '@mui/icons-material/Extension'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Collapse,
-  Divider,
-  FormControl,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Tooltip,
-  Typography
+    Alert,
+    Box,
+    Button,
+    Chip,
+    Collapse,
+    Divider,
+    FormControl,
+    IconButton,
+    InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    Tooltip,
+    Typography
 } from '@mui/material'
 import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
 import { JSX, useCallback, useState } from 'react'
 import {
-  EmptyState,
-  FileDropTarget,
-  IndexBadge,
-  NameField,
-  SidebarTab,
-  StickyHeader
+    EmptyState,
+    FileDropTarget,
+    IndexBadge,
+    NameField,
+    SidebarTab,
+    StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
 import { useSettings } from '../../context/SettingsContext'

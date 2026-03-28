@@ -1,10 +1,8 @@
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
 import ClearIcon from '@mui/icons-material/Clear'
-import BrokenImageIcon from '@mui/icons-material/BrokenImage'
 import { Box, CircularProgress, IconButton, SxProps, Tooltip, Typography } from '@mui/material'
-import React, { useContext, useState } from 'react'
+import React, { useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { AssetTrackerContext } from '../context/AssetTrackerContext'
 import { useAssetUrl } from '../hooks/useAssetUrl'
 
 interface Props {
@@ -27,14 +25,7 @@ export default function ImagePicker({
   sx
 }: Props): React.ReactElement {
   const [loading, setLoading] = useState(false)
-  const [imgError, setImgError] = useState(false)
   const { data: url } = useAssetUrl(projectDir, value)
-  const trackAsset = useContext(AssetTrackerContext)
-
-  // Reset error when URL changes
-  React.useEffect(() => {
-    setImgError(false)
-  }, [url])
 
   const importFile = async (filePath: string): Promise<void> => {
     setLoading(true)
@@ -44,7 +35,6 @@ export default function ImagePicker({
         projectDir,
         desiredNamePrefix
       )
-      trackAsset(relativePath)
       onChange(relativePath)
     } finally {
       setLoading(false)
@@ -135,36 +125,12 @@ export default function ImagePicker({
           <CircularProgress size={24} />
         ) : url ? (
           <>
-            {imgError ? (
-              <Box
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(239,68,68,0.1)',
-                  color: '#ef4444'
-                }}
-              >
-                <BrokenImageIcon sx={{ fontSize: size * 0.32, opacity: 0.8 }} />
-                <Typography
-                  variant="caption"
-                  sx={{ mt: 0.5, fontSize: '0.65rem', fontWeight: 600 }}
-                >
-                  Asset Missing
-                </Typography>
-              </Box>
-            ) : (
-              <Box
-                component="img"
-                src={url}
-                alt={label ?? 'asset'}
-                onError={() => setImgError(true)}
-                sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            )}
+            <Box
+              component="img"
+              src={url}
+              alt={label ?? 'asset'}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
             <IconButton
               size="small"
               onClick={handleClear}

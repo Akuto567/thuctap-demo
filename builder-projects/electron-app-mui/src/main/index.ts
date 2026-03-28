@@ -5,7 +5,6 @@ import * as path from 'path'
 import type { AnyAppData, FolderStatus, GameTemplate, GlobalSettings, ProjectFile } from '../shared'
 import { prepareAppDataForTemplate } from './gameRegistry'
 import { createHandler } from './ipc-handlers'
-import { migrateProjectFile } from '../shared/migrations'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -95,16 +94,11 @@ function collectUsedAssets(obj: unknown, out = new Set<string>()): Set<string> {
 }
 
 /** Delete files in <projectDir>/assets/ that are not in the used set */
-function purgeUnusedAssets(projectDir: string, projectData: Record<string, unknown>): void {
+function purgeUnusedAssets(projectDir: string, projectData: object): void {
   const assetsDir = path.join(projectDir, 'assets')
   if (!fs.existsSync(assetsDir)) return
-  let usedPaths: string[] = []
-  if (projectData.assets && Array.isArray(projectData.assets)) {
-    usedPaths = projectData.assets
-  } else {
-    usedPaths = Array.from(collectUsedAssets(projectData))
-  }
-  const usedFiles = new Set(usedPaths.map((p: string) => path.basename(p)))
+  const usedPaths = collectUsedAssets(projectData)
+  const usedFiles = new Set([...usedPaths].map((p) => path.basename(p)))
   for (const file of fs.readdirSync(assetsDir)) {
     if (!usedFiles.has(file)) {
       try {
@@ -112,43 +106,6 @@ function purgeUnusedAssets(projectDir: string, projectData: Record<string, unkno
       } catch {
         /* ignore */
       }
-    }
-  }
-}
-
-function copyUsedAssetsSync(
-  projectDir: string,
-  destDir: string,
-  appData: Record<string, unknown>
-): void {
-  const assetsDir = path.join(projectDir, 'assets')
-  if (!fs.existsSync(assetsDir)) return
-  const usedPaths = collectUsedAssets(appData)
-  const destAssetsDir = path.join(destDir, 'assets')
-  fs.mkdirSync(destAssetsDir, { recursive: true })
-  for (const relPath of usedPaths) {
-    const file = path.basename(relPath)
-    const srcFile = path.join(assetsDir, file)
-    const destFile = path.join(destAssetsDir, file)
-    if (fs.existsSync(srcFile)) {
-      fs.copyFileSync(srcFile, destFile)
-    }
-  }
-}
-
-function appendUsedAssetsToZip(
-  archive: archiver.Archiver,
-  projectDir: string,
-  appData: Record<string, unknown>
-): void {
-  const assetsDir = path.join(projectDir, 'assets')
-  if (!fs.existsSync(assetsDir)) return
-  const usedPaths = collectUsedAssets(appData)
-  for (const relPath of usedPaths) {
-    const file = path.basename(relPath)
-    const srcFile = path.join(assetsDir, file)
-    if (fs.existsSync(srcFile)) {
-      archive.file(srcFile, { name: `assets/${file}` })
     }
   }
 }
@@ -306,15 +263,15 @@ createHandler('open-project-file', async (_e, filePath?: string) => {
     resolved = result.filePaths[0]
   }
   const content = fs.readFileSync(resolved, 'utf-8')
-  const rawData = JSON.parse(content)
-  const { file } = migrateProjectFile(rawData)
-
-  return { filePath: resolved, data: file as unknown as ProjectFile }
+  return { filePath: resolved, data: JSON.parse(content) } as {
+    filePath: string
+    data: ProjectFile
+  }
 })
 
 createHandler('save-project', async (_e, projectData: object, projectPath: string) => {
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
-  purgeUnusedAssets(path.dirname(projectPath), projectData as Record<string, unknown>)
+  purgeUnusedAssets(path.dirname(projectPath), projectData)
   return true
 })
 
@@ -346,7 +303,7 @@ createHandler(
     // Write project file
     const newFilePath = path.join(newFolder, 'project.mgproj')
     fs.writeFileSync(newFilePath, JSON.stringify(projectData, null, 2), 'utf-8')
-    purgeUnusedAssets(newFolder, projectData as Record<string, unknown>)
+    purgeUnusedAssets(newFolder, projectData)
 
     return { filePath: newFilePath, projectDir: newFolder }
   }
@@ -479,7 +436,8 @@ createHandler(
       copyDirSync(gameDir, destDir)
       fs.writeFileSync(path.join(destDir, 'index.html'), injectedHtml, 'utf-8')
       // Copy project assets
-      copyUsedAssetsSync(projectDir, destDir, appData as Record<string, unknown>)
+      const assetsDir = path.join(projectDir, 'assets')
+      if (fs.existsSync(assetsDir)) copyDirSync(assetsDir, path.join(destDir, 'assets'))
       shell.openPath(destDir)
       return { success: true, path: destDir }
     } else {
@@ -489,13 +447,7 @@ createHandler(
         title: 'Save Export ZIP'
       })
       if (result.canceled) return { canceled: true }
-      await exportToZip(
-        injectedHtml,
-        gameDir,
-        projectDir,
-        result.filePath!,
-        appData as Record<string, unknown>
-      )
+      await exportToZip(injectedHtml, gameDir, projectDir, result.filePath!)
       shell.showItemInFolder(result.filePath!)
       return { success: true, path: result.filePath }
     }
@@ -506,8 +458,7 @@ async function exportToZip(
   injectedHtml: string,
   gameDir: string,
   projectDir: string,
-  zipPath: string,
-  appData: Record<string, unknown>
+  zipPath: string
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const output = fs.createWriteStream(zipPath)
@@ -523,8 +474,9 @@ async function exportToZip(
     })
     // Add injected index.html
     archive.append(injectedHtml, { name: 'index.html' })
-    // Add project assets explicitly
-    appendUsedAssetsToZip(archive, projectDir, appData)
+    // Add project assets
+    const assetsDir = path.join(projectDir, 'assets')
+    if (fs.existsSync(assetsDir)) archive.directory(assetsDir, 'assets')
     archive.finalize()
   })
 }

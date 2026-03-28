@@ -7,29 +7,29 @@ import QuizIcon from '@mui/icons-material/Quiz'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Collapse,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Paper,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography
+    Alert,
+    Box,
+    Button,
+    Chip,
+    Collapse,
+    Divider,
+    FormControlLabel,
+    IconButton,
+    Paper,
+    Switch,
+    TextField,
+    Tooltip,
+    Typography
 } from '@mui/material'
 import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
 import React, { useCallback } from 'react'
 import {
-  EmptyState,
-  FileDropTarget,
-  IndexBadge,
-  NameField,
-  SidebarTab,
-  StickyHeader
+    EmptyState,
+    FileDropTarget,
+    IndexBadge,
+    NameField,
+    SidebarTab,
+    StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
 import { useSettings } from '../../context/SettingsContext'

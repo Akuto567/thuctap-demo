@@ -179,11 +179,6 @@ export interface ProjectFile {
   updatedAt: string
   settings?: ProjectSettings | null
   appData: AnyAppData
-  assets?: string[]
-  history?: {
-    past: import('./migrations').Difference[][]
-    future: import('./migrations').Difference[][]
-  }
 }
 
 export interface ProjectMeta {

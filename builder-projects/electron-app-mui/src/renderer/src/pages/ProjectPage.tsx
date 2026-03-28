@@ -37,33 +37,21 @@ import { useSettings } from '../context/SettingsContext'
 import { GAME_REGISTRY } from '../games/registry'
 import { useHistory } from '../hooks/useHistory'
 import { AnyAppData, GameTemplate, ProjectFile, ProjectMeta } from '../types'
-import { AssetTrackerContext } from '../context/AssetTrackerContext'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildTitle(templateId: string, projectName: string, filePath: string): string {
   return `[${templateId}] ${projectName} — ${filePath}`
 }
 
-function buildProjectFile(
-  meta: ProjectMeta,
-  appData: AnyAppData,
-  historyPast?: import('microdiff').Difference[][],
-  historyFuture?: import('microdiff').Difference[][],
-  assets?: string[]
-): ProjectFile {
+function buildProjectFile(meta: ProjectMeta, appData: AnyAppData): ProjectFile {
   return {
-    version: meta.name ? '1.2.0' : '1.2.0', // always same, could track version
+    version: meta.name ? '1.0.0' : '1.0.0', // always same, could track version
     templateId: meta.templateId,
     name: meta.name,
     createdAt: meta.createdAt,
     updatedAt: new Date().toISOString(),
     settings: meta.settings,
-    appData,
-    assets,
-    history: {
-      past: historyPast || [],
-      future: historyFuture || []
-    }
+    appData
   }
 }
 
@@ -98,17 +86,7 @@ export default function ProjectPage(): JSX.Element {
   const [templates, setTemplates] = useState<GameTemplate[]>([])
 
   // History tracks only the game data, not meta
-  const history = useHistory<AnyAppData>(
-    locationState?.data.appData ?? ({} as AnyAppData),
-    locationState?.data.history?.past as import('microdiff').Difference[][],
-    locationState?.data.history?.future as import('microdiff').Difference[][]
-  )
-
-  // Explicit Asset Tracking
-  const explicitAssetsRef = useRef<Set<string>>(new Set(locationState?.data.assets || []))
-  const trackAsset = useCallback((path: string) => {
-    explicitAssetsRef.current.add(path)
-  }, [])
+  const history = useHistory<AnyAppData>(locationState?.data.appData ?? ({} as AnyAppData))
 
   // Load templates list for display names
   useEffect(() => {
@@ -158,44 +136,18 @@ export default function ProjectPage(): JSX.Element {
   )
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  const doSave = useCallback(
-    async (currentMeta: ProjectMeta, appData: AnyAppData) => {
-      // Find which explicit assets are still present in ANY historical/current state
-      const reachableStates = history.getReachableStates()
-      const allReachableStr = JSON.stringify(reachableStates)
-      const reachableExplicitAssets = Array.from(explicitAssetsRef.current).filter((asset) =>
-        allReachableStr.includes(asset)
-      )
-
-      // Prune list
-      explicitAssetsRef.current = new Set(reachableExplicitAssets)
-
-      const file = buildProjectFile(
-        currentMeta,
-        appData,
-        history.past,
-        history.future,
-        reachableExplicitAssets
-      )
-      await window.electronAPI.saveProject(file, currentMeta.filePath)
-      setIsDirty(false)
-    },
-    [history]
-  )
+  const doSave = useCallback(async (currentMeta: ProjectMeta, appData: AnyAppData) => {
+    const file = buildProjectFile(currentMeta, appData)
+    await window.electronAPI.saveProject(file, currentMeta.filePath)
+    setIsDirty(false)
+  }, [])
 
   const performSaveAs = useCallback(
     async (folder: string): Promise<void> => {
       if (!meta) return
       try {
-        const file = buildProjectFile(
-          meta,
-          history.present,
-          history.past,
-          history.future,
-          Array.from(explicitAssetsRef.current)
-        )
         const newLoc = await window.electronAPI.doSaveAs({
-          projectData: file,
+          projectData: buildProjectFile(meta, history.present),
           oldProjectDir: meta.projectDir,
           newFolder: folder
         })
@@ -209,7 +161,7 @@ export default function ProjectPage(): JSX.Element {
         showSnack(`Save As failed: ${e}`, 'error')
       }
     },
-    [meta, history.present, history.past, history.future, showSnack]
+    [meta, history.present, showSnack]
   )
 
   // ── Auto-save ─────────────────────────────────────────────────────────────
@@ -260,15 +212,8 @@ export default function ProjectPage(): JSX.Element {
   // ── Save As ───────────────────────────────────────────────────────────────
   const handleSaveAs = useCallback(async (): Promise<void> => {
     if (!meta) return
-    const file = buildProjectFile(
-      meta,
-      history.present,
-      history.past,
-      history.future,
-      Array.from(explicitAssetsRef.current)
-    )
     const result = await window.electronAPI.saveProjectAs({
-      projectData: file,
+      projectData: buildProjectFile(meta, history.present),
       oldProjectDir: meta.projectDir
     })
     if (!result) return
@@ -280,7 +225,7 @@ export default function ProjectPage(): JSX.Element {
       }
     }
     await performSaveAs(result.folder)
-  }, [meta, history.present, history.past, history.future, showSnack, performSaveAs])
+  }, [meta, history.present, showSnack, performSaveAs])
 
   // ── Export / Preview ───────────────────────────────────────────────────────
   const handleExport = async (mode: 'folder' | 'zip'): Promise<void> => {
@@ -508,13 +453,11 @@ export default function ProjectPage(): JSX.Element {
             )
           const { Editor } = entry
           return (
-            <AssetTrackerContext.Provider value={trackAsset}>
-              <Editor
-                appData={history.present}
-                projectDir={meta.projectDir}
-                onChange={handleAppDataChange}
-              />
-            </AssetTrackerContext.Provider>
+            <Editor
+              appData={history.present}
+              projectDir={meta.projectDir}
+              onChange={handleAppDataChange}
+            />
           )
         })()}
       </Box>

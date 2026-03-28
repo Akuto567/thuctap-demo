@@ -62,8 +62,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Settings
   settingsReadGlobal: () => typedIpcRenderer.invoke('settings-read-global'),
-  settingsWriteGlobal: (data: GlobalSettings) =>
-    typedIpcRenderer.invoke('settings-write-global', data),
+  settingsWriteGlobal: (data: GlobalSettings) => typedIpcRenderer.invoke('settings-write-global', data),
 
   // Window
   setTitle: (title: string) => typedIpcRenderer.invoke('set-title', title),

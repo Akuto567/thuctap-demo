@@ -6,12 +6,12 @@ import { Alert, Box, Button, Collapse, IconButton, Paper, Tooltip, Typography } 
 import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
 import { useCallback, useState } from 'react'
 import {
-  AtoZWordField,
-  EmptyState,
-  FileDropTarget,
-  IndexBadge,
-  SidebarTab,
-  StickyHeader
+    AtoZWordField,
+    EmptyState,
+    FileDropTarget,
+    IndexBadge,
+    SidebarTab,
+    StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
 import { useSettings } from '../../context/SettingsContext'
