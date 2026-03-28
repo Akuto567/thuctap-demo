@@ -46,7 +46,7 @@ export default function MatchingGame() {
     if (containerRef.current) obs.observe(containerRef.current);
 
     const onResize = () =>
-      setIsLandscape(window.innerWidth / window.innerHeight >= 1.3);
+      setIsLandscape(window.innerWidth / window.innerHeight >= 1.2);
     window.addEventListener("resize", onResize);
     return () => {
       obs.disconnect();
@@ -57,19 +57,28 @@ export default function MatchingGame() {
   // Compute card size to fill available space
   // Proportional UI Scale
   const isNarrow = useMemo(() => {
-    return window.innerWidth / window.innerHeight < 0.72;
+    return window.innerWidth / window.innerHeight < 0.6;
   }, []);
 
   const uiScale = useMemo(() => {
     if (isLandscape) {
-      // Landscape: base on a larger height to avoid over-scaling
+      // Landscape: base on height
       return Math.min(Math.max(window.innerHeight / 850, 0.8), 1.25);
     } else {
-      // Portrait: higher floor for visibility
-      const base = isNarrow ? 380 : 440;
-      return Math.min(Math.max(window.innerWidth / base, 0.95), 1.4);
+      // Portrait: base on width AND height to prevent HUD overflow
+      const widthBase = isNarrow ? 380 : 440;
+      const heightBase = 800;
+      const scaleByWidth = window.innerWidth / widthBase;
+      const scaleByHeight = window.innerHeight / heightBase;
+
+      // Use the smaller of the two to ensure it fits, but with a floor
+      const scale = Math.min(scaleByWidth, scaleByHeight);
+      return Math.min(Math.max(scale, isNarrow ? 0.85 : 0.95), 1.4);
     }
   }, [isLandscape, isNarrow]);
+
+  const finalCols = isLandscape ? grid.cols : grid.rows;
+  const finalRows = isLandscape ? grid.rows : grid.cols;
 
   // Compute card size to fill available space
   // Reduced base GAP for tighter look on small screens
@@ -77,17 +86,17 @@ export default function MatchingGame() {
   const cardSize = useMemo(() => {
     if (!containerSize.w || !containerSize.h) return 80;
     const maxByCols = Math.floor(
-      (containerSize.w - GAP * (grid.cols - 1)) / grid.cols,
+      (containerSize.w - GAP * (finalCols - 1)) / finalCols,
     );
     const maxByRows = Math.floor(
-      (containerSize.h - GAP * (grid.rows - 1)) / grid.rows,
+      (containerSize.h - GAP * (finalRows - 1)) / finalRows,
     );
     const size = Math.min(maxByCols, maxByRows);
     return Math.max(size, 40); // minimum 40px
-  }, [containerSize, grid, GAP]);
+  }, [containerSize, finalCols, finalRows, GAP]);
 
-  const gridW = cardSize * grid.cols + GAP * (grid.cols - 1);
-  const gridH = cardSize * grid.rows + GAP * (grid.rows - 1);
+  const gridW = cardSize * finalCols + GAP * (finalCols - 1);
+  const gridH = cardSize * finalRows + GAP * (finalRows - 1);
 
   // Matched pairs count
   const totalPairs = cards.length / 2;
@@ -230,8 +239,8 @@ export default function MatchingGame() {
             width: gridW,
             height: gridH,
             display: "grid",
-            gridTemplateColumns: `repeat(${grid.cols}, ${cardSize}px)`,
-            gridTemplateRows: `repeat(${grid.rows}, ${cardSize}px)`,
+            gridTemplateColumns: `repeat(${finalCols}, ${cardSize}px)`,
+            gridTemplateRows: `repeat(${finalRows}, ${cardSize}px)`,
             gap: GAP,
           }}
           animate={{ opacity: 1, scale: 1 }}

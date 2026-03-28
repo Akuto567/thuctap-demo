@@ -5,75 +5,102 @@ export function getOptimalGrid(totalCards: number): {
   rows: number;
   cols: number;
 } {
-  // Must be even number
-  const n = totalCards % 2 === 0 ? totalCards : totalCards + 1;
-  // Try to get a rectangle as square as possible, max ratio 2:1
-  let bestRows = 2,
-    bestCols = n / 2;
-  let bestScore = Infinity;
-  for (let rows = 2; rows <= n; rows++) {
-    if (n % rows !== 0) continue;
-    const cols = n / rows;
-    if (cols < rows) break;
-    const ratio = cols / rows;
-    const score = Math.abs(ratio - 1.5); // target ~3:2 ratio
-    if (score < bestScore) {
-      bestScore = score;
-      bestRows = rows;
-      bestCols = cols;
+  let n = totalCards % 2 === 0 ? totalCards : totalCards + 1;
+  const maxRatio = 2.0;
+
+  while (n < 100) {
+    let bestRows = -1;
+    let bestCols = -1;
+    let bestScore = Infinity;
+
+    for (let r = 1; r * r <= n; r++) {
+      if (n % r === 0) {
+        const c = n / r;
+        const ratio = c / r;
+
+        if (ratio <= maxRatio) {
+          // Score based on proximity to 4:3 or 1:1
+          const score = Math.abs(ratio - 1.2);
+          if (score < bestScore) {
+            bestScore = score;
+            bestRows = r;
+            bestCols = c;
+          }
+        }
+      }
     }
+
+    if (bestRows !== -1) {
+      // Return normalized as landscape-oriented (cols >= rows)
+      return {
+        rows: Math.min(bestRows, bestCols),
+        cols: Math.max(bestRows, bestCols),
+      };
+    }
+    n += 2; // Try next even number
   }
-  return { rows: bestRows, cols: bestCols };
+
+  // Fallback
+  return { rows: 2, cols: Math.ceil(totalCards / 2) };
+}
+
+// Helper for weighted random selection (favors items with fewer pairs)
+function getRandomItemByWeight(
+  items: GameConfig["items"],
+  pairCounts: Map<string, number>,
+) {
+  const candidates = items.map((item) => {
+    const count = pairCounts.get(item.id) || 1;
+    // Weight is inversely proportional to the square of the count
+    return { item, weight: 1 / Math.pow(count, 2) };
+  });
+  const totalWeight = candidates.reduce((s, c) => s + c.weight, 0);
+  let r = Math.random() * totalWeight;
+  for (const c of candidates) {
+    if (r < c.weight) return c.item;
+    r -= c.weight;
+  }
+  return items[Math.floor(Math.random() * items.length)];
 }
 
 export function buildDeck(config: GameConfig): CardState[] {
   const { items, minTotalPairs = 4 } = config;
+  if (!items.length) return [];
 
-  // Step 1: For each item, determine how many pairs it contributes
+  // Step 1: Initialize minPairs
   const pairCounts: Map<string, number> = new Map();
   for (const item of items) {
-    pairCounts.set(item.id, item.minPairs ?? 1);
+    pairCounts.set(item.id, Math.max(item.minPairs ?? 1, 1));
   }
 
-  // Step 2: Sum pairs
-  let totalPairs = Array.from(pairCounts.values()).reduce((a, b) => a + b, 0);
+  // Step 2: Sum current pairs
+  let currentPairsTotal = Array.from(pairCounts.values()).reduce(
+    (a, b) => a + b,
+    0,
+  );
 
-  // Step 3: Ensure at least minTotalPairs (2 pairs = 4 cards minimum)
-  const effectiveMin = Math.max(minTotalPairs, 2);
-  while (totalPairs < effectiveMin) {
-    // Add pairs from items round-robin
-    for (const item of items) {
-      if (totalPairs >= effectiveMin) break;
-      pairCounts.set(item.id, (pairCounts.get(item.id) ?? 1) + 1);
-      totalPairs++;
-    }
+  // Step 3: Determine target grid size
+  // Grid must fit currentPairsTotal * 2 AND minTotalPairs * 2
+  const minCardsNeeded = Math.max(currentPairsTotal, minTotalPairs) * 2;
+  const grid = getOptimalGrid(minCardsNeeded);
+  const targetCards = grid.rows * grid.cols;
+  const targetPairs = targetCards / 2;
+
+  // Step 4: Fill the gap to reach targetPairs
+  while (currentPairsTotal < targetPairs) {
+    const item = getRandomItemByWeight(items, pairCounts);
+    pairCounts.set(item.id, (pairCounts.get(item.id) ?? 0) + 1);
+    currentPairsTotal++;
   }
 
-  // Step 4: totalCards = totalPairs * 2; find grid
-  let totalCards = totalPairs * 2;
-  let grid = getOptimalGrid(totalCards);
-
-  // Step 5: Make sure totalCards fills the grid
-  const needed = grid.rows * grid.cols;
-  if (needed > totalCards) {
-    const extraPairs = (needed - totalCards) / 2;
-    for (let i = 0; i < extraPairs; i++) {
-      const item = items[i % items.length];
-      pairCounts.set(item.id, (pairCounts.get(item.id) ?? 1) + 1);
-    }
-    totalCards = needed;
-    // recalculate grid since total changed
-    grid = getOptimalGrid(totalCards);
-  }
-
-  // Step 6: Build card array
+  // Step 5: Build card array
   const cards: CardState[] = [];
   for (const item of items) {
     const count = pairCounts.get(item.id) ?? 1;
     for (let p = 0; p < count; p++) {
       for (let side = 0; side < 2; side++) {
         cards.push({
-          uid: `${item.id}-p${p}-s${side}-${Math.random().toString(36).slice(2)}`,
+          uid: `${item.id}-p${p}-s${side}-${Math.random()}`,
           itemId: item.id,
           image: item.image,
           keyword: item.keyword,
@@ -85,7 +112,7 @@ export function buildDeck(config: GameConfig): CardState[] {
     }
   }
 
-  // Step 7: Shuffle
+  // Step 6: Shuffle
   for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [cards[i], cards[j]] = [cards[j], cards[i]];

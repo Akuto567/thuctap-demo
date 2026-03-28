@@ -19,7 +19,7 @@ export function HUD({
       <div
         className="flex flex-col items-stretch w-full"
         style={{
-          gap: (isNarrow ? 14 : 20) * uiScale,
+          gap: (isNarrow ? 8 : 20) * uiScale,
           paddingTop: isLandscape ? 20 * uiScale : 0,
         }}
       >
