@@ -273,11 +273,11 @@ const status = await window.electronAPI.checkFolderStatus('/some/path')
                        └─────────────────┘
 ```
 
-### explicit Asset Tracking & Snapshot-based History
+### explicit Asset Tracking & Incremental History
 
-Starting from version `1.1.0`, the builder uses a snapshot-based history system for undo/redo functionality. Each state change is stored as a complete snapshot, providing reliable and predictable undo/redo behavior.
+Starting from version `1.2.0`, the builder leverages **microdiff** to store sparse JSON patches in `ProjectFile.history` instead of full snapshots, keeping project sizes small even with deep undo histories.
 
-`ProjectFile.assets` maintains an explicitly tracked array of all imported assets. The builder dynamically purges assets only when they are entirely missing from ANY reachable history state (current, past, or future states).
+To ensure game assets are reliably exported and unused assets reliably purged even when omitted from history traversals or implicit scans, `ProjectFile.assets` maintains an explicitly tracked array of all imported assets. The builder dynamically purges assets only when they are entirely missing from ANY reachable history state.
 
 ### Data Transforms (`src/main/gameRegistry.ts`)
 
@@ -685,15 +685,15 @@ Run `./build-templates.sh` from the repo root to ensure all templates are built 
 - Transforms are applied consistently for preview and export
 - Game templates can evolve independently of editor structure
 
-### ADR-004: Explicit Asset Tracking and Snapshot-based History
+### ADR-004: Explicit Asset Tracking and Incremental History
 
-**Decision**: Track assets explicitly in `ProjectFile.assets` and manage undo/redo history using complete snapshots. A migration framework updates `1.0.0` to `1.1.0`.
+**Decision**: Track assets explicitly in `ProjectFile.assets` and manage undo/redo history using precise `microdiff` patches. A migration framework updates `1.0.0` to `1.2.0`.
 
 **Rationale**:
 
-- Simple and predictable undo/redo behavior without complex patch inversion
+- Prevents huge memory/file bloat for deep undo stacks (JSON strings vs simple patches)
 - Fixes implicit regex-based logic missing dynamic asset usages
-- Resolves data-integrity bounds by checking all reachable states (past, present, future)
+- Resolves data-integrity bounds (where assets inside a discarded redo stack would immediately be physically unlinked)
 - Pathfinding migrations automatically resolve legacy format compatibility silently.
 
 ---

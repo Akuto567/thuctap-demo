@@ -180,6 +180,10 @@ export interface ProjectFile {
   settings?: ProjectSettings | null
   appData: AnyAppData
   assets?: string[]
+  history?: {
+    past: import('fast-json-patch').Operation[][]
+    future: import('fast-json-patch').Operation[][]
+  }
 }
 
 export interface ProjectMeta {

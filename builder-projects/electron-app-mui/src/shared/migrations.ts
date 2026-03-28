@@ -1,13 +1,12 @@
 import type { ProjectFile } from './types'
 
 // Ensure the types module is imported exactly like this in tests/elsewhere
-export const CURRENT_PROJECT_VERSION = '1.1.0'
+export const CURRENT_PROJECT_VERSION = '1.2.0'
 
 export interface MigrationStep {
   fromVersion: string
   toVersion: string
   changelog: string
-  downgradeNote?: string
   // Upgrade from 'fromVersion' to 'toVersion'
   upgrade: (file: Record<string, unknown>) => Record<string, unknown>
   // Downgrade from 'toVersion' to 'fromVersion'
@@ -46,9 +45,7 @@ export const MIGRATIONS: MigrationStep[] = [
   {
     fromVersion: '1.0.0',
     toVersion: '1.1.0',
-    changelog: 'Added explicit asset tracking and snapshot-based undo/redo history.',
-    downgradeNote:
-      'Downgrading to 1.0.0 will remove explicit asset tracking and undo/redo history. Assets will be re-scanned from content, and all undo/redo states will be lost.',
+    changelog: 'Added explicit asset tracking mechanism.',
     upgrade: (file: Record<string, unknown>) => {
       const cloned = JSON.parse(JSON.stringify(file))
       cloned.version = '1.1.0'
@@ -56,13 +53,31 @@ export const MIGRATIONS: MigrationStep[] = [
       if (!cloned.assets) {
         cloned.assets = Array.from(collectUsedAssets(cloned.appData))
       }
-      // Note: We don't migrate history from old format - it's a new feature
       return cloned
     },
     downgrade: (file: Record<string, unknown>) => {
       const cloned = JSON.parse(JSON.stringify(file))
       cloned.version = '1.0.0'
       delete cloned.assets
+      return cloned
+    }
+  },
+  {
+    fromVersion: '1.1.0',
+    toVersion: '1.2.0',
+    changelog: 'Added incremental undo/redo history using diffs.',
+    upgrade: (file: Record<string, unknown>) => {
+      const cloned = JSON.parse(JSON.stringify(file))
+      cloned.version = '1.2.0'
+      if (!cloned.history) {
+        cloned.history = { past: [], future: [] }
+      }
+      return cloned
+    },
+    downgrade: (file: Record<string, unknown>) => {
+      const cloned = JSON.parse(JSON.stringify(file))
+      cloned.version = '1.1.0'
+      delete cloned.history
       return cloned
     }
   }
@@ -137,7 +152,7 @@ export function findMigrationPath(startVersion: string, targetVersion: string): 
 export function migrateProjectFile(
   file: Record<string, unknown>,
   targetVersion: string = CURRENT_PROJECT_VERSION
-): { file: ProjectFile; changelogs: string[]; downgradeNotes: string[] } {
+): { file: ProjectFile; changelogs: string[] } {
   const startVersion = (file.version as string) || '1.0.0'
   const path = findMigrationPath(startVersion, targetVersion)
 
@@ -149,19 +164,15 @@ export function migrateProjectFile(
 
   let current = file
   const changelogs: string[] = []
-  const downgradeNotes: string[] = []
 
   for (const edge of path) {
     if (edge.action === 'upgrade') {
       current = edge.step.upgrade(current)
-      changelogs.push(edge.step.changelog)
     } else {
       current = edge.step.downgrade(current)
-      if (edge.step.downgradeNote) {
-        downgradeNotes.push(edge.step.downgradeNote)
-      }
     }
+    changelogs.push(edge.step.changelog)
   }
 
-  return { file: current as unknown as ProjectFile, changelogs, downgradeNotes }
+  return { file: current as unknown as ProjectFile, changelogs }
 }
