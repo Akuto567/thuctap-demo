@@ -1,6 +1,6 @@
 {
   "name": "electron-app",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -55,6 +55,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",
+    "electron-icon-maker": "^0.0.5",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
@@ -66,35 +67,6 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.0"
-  },
-  "build": {
-    "appId": "com.electron.app",
-    "productName": "electron-app",
-    "asar": true,
-    "files": [
-      "out/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "templates",
-        "to": "templates"
-      }
-    ],
-    "win": {
-      "target": [
-        "7z"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
-    }
   },
   "packageManager": "yarn@4.13.0"
 }

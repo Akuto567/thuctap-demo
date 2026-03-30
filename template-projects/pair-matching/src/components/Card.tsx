@@ -82,7 +82,7 @@ export default function Card({ card, onClick, disabled, size }: CardProps) {
               {isEmoji(image) ? (
                 <span
                   style={{
-                    fontSize: size * 0.48,
+                    fontSize: size * 0.6,
                     lineHeight: 1,
                     filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
                   }}
@@ -93,8 +93,8 @@ export default function Card({ card, onClick, disabled, size }: CardProps) {
                 <img
                   src={image}
                   alt={keyword}
-                  className="object-contain"
-                  style={{ maxWidth: size * 0.72, maxHeight: size * 0.72 }}
+                  className="w-full h-full object-contain"
+                  // style={{ maxWidth: size * 0.86, maxHeight: size * 0.86 }}
                 />
               )}
             </div>

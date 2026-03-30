@@ -1,24 +1,63 @@
-appId: com.electron.app
-productName: electron-app
+appId: com.iclc.gamemaker
+productName: I-CLC Game maker
 directories:
+  output: dist
   buildResources: build
+
+# Merged file strategy
 files:
+  - 'out/**/*'
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+
+# From your package.json extraResources
+extraResources:
+  - from: 'templates'
+    to: 'templates'
+
+asar: true
 asarUnpack:
-  - resources/**
+  - 'resources/**'
+
+# --- NSIS CONFIGURATION FOR TWO INSTALLERS ---
 win:
-  executableName: electron-app
+  executableName: iclc-gamemaker
+  icon: 'resources/icons/win/icon.ico'
+  # We define two targets with different configurations
+  target:
+    - target: nsis
+      arch: ['x64']
+
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
+  # Result: I-CLC-Game-maker-Setup-0.0.1-win-x64.exe
+  artifactName: '${productName}-Setup-${version}-${platform}-${arch}.${ext}'
+  shortcutName: '${productName}'
+  uninstallDisplayName: '${productName}'
   createDesktopShortcut: always
+  # This makes it NOT one-click (gives the user the install wizard)
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+# Note: To build a "one-click" version simultaneously,
+# you typically run two separate build commands or use
+# different config files, as 'oneClick' is a global NSIS setting.
+# See the 'Alternative Strategy' below for the two-build fix.
+
+dmg:
+  # Result: I-CLC-Game-maker-0.0.1-mac-arm64.dmg
+  artifactName: '${productName}-${version}-${platform}-${arch}.${ext}'
+
+appImage:
+  # Result: I-CLC-Game-maker-0.0.1-linux-x86_64.AppImage
+  artifactName: '${productName}-${version}-${platform}-${arch}.${ext}'
+
 mac:
+  target: dmg
+  icon: 'resources/icons/mac/icon.icns'
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -26,18 +65,16 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-dmg:
-  artifactName: ${name}-${version}.${ext}
+
 linux:
   target:
     - AppImage
     - snap
     - deb
+  icon: 'resources/icons/png'
   maintainer: electronjs.org
   category: Utility
-appImage:
-  artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+
 publish:
   provider: generic
   url: https://example.com/auto-updates

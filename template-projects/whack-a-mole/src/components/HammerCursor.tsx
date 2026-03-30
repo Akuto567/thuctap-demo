@@ -32,10 +32,9 @@ export default function HammerCursor() {
                 top: pos.y,
                 width: 90,
                 pointerEvents: "none",
-                zIndex: 9999,
 
                 transform: `
-                  translate(-35%, -80%)
+                  translate(-30%, -65%)
                   rotateZ(${hit ? -25 : 35}deg)
                   scale(${hit ? 0.95 : 1})
                 `,

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Hole from "./Hole";
 import type { Question, Answer, RoundAnswer } from "../type";
-import HammerCursor from "./HammerCursor";
 
 const TOTAL = 10;
 
@@ -10,13 +9,15 @@ type Props = {
   question: Question;
   answerPool: Answer[];
   onCorrect: () => void;
+  isPlaying: boolean
 };
 
 export default function GamePage({
   currentIndex,
   question,
   answerPool,
-  onCorrect
+  onCorrect,
+  isPlaying
 }: Props) {
   const [activeIndexes, setActiveIndexes] = useState<number[]>([]);
   const [goingDown, setGoingDown] = useState<number[]>([]);
@@ -41,11 +42,13 @@ export default function GamePage({
   }
 
   useEffect(() => {
-    spawnMoles();
+    if (!isPlaying) return
+    // spawnMoles();
+    autoHideMoles(activeIndexes)
     return () => {
       clearTimeoutRef()
     };
-  }, []);
+  }, [isPlaying]);
 
   const generateAnswers = (count: number, forceCorrect = false): RoundAnswer[] => {
     const correct: RoundAnswer = {
@@ -183,6 +186,7 @@ export default function GamePage({
   };
 
   const handleWhack = (index: number) => {
+    if (!isPlaying) return;
     const answer = holeData[index];
     if (!answer) return;
 
@@ -215,7 +219,6 @@ export default function GamePage({
 
   return (
     <div className="page">
-      <HammerCursor />
       <div className="sign-box">
         {/* <img src="/assets/wood.svg" alt="" />
          */}

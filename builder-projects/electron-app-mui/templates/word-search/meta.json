@@ -2,5 +2,5 @@
   "name": "Word Search",
   "description": "Students search for and highlight hidden words in a grid puzzle. Words can be associated with images for visual learning support.",
   "gameType": "word-search",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
