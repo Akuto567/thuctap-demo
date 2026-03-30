@@ -453,7 +453,9 @@ createHandler('preview-project', async (_, opts) => {
     }
   })
 
-  previewWindow.webContents.openDevTools()
+  if (isDev) {
+    previewWindow.webContents.openDevTools()
+  }
 
   previewWindow.loadURL(`preview-project://${sessionId}/index.html`)
 
