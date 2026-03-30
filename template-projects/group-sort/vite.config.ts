@@ -12,4 +12,7 @@ export default defineConfig({
     tailwindcss(),
     viteSingleFile(),
   ],
+  // resolve: {
+  //   dedupe: ["react", "react-dom"],
+  // },
 });

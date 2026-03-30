@@ -127,7 +127,7 @@ Có thể đặt tệp `thumbnail.png` (hoặc `.jpg`/`.webp`) bên cạnh `meta
 ## Phát triển Cục bộ
 
 ```bash
-# 1. Build tất cả game templates và sao chép chúng vào trình soạn thảo
+# 1. Build tất cả game templates (bao gồm shared libraries)
 ./build-templates.sh
 
 # 2. Khởi động trình soạn thảo ở chế độ dev
@@ -142,32 +142,43 @@ yarn dev
 ./build-templates.sh group-sort
 ```
 
+> 💡 **Dành cho nhà phát triển game template:** Xem [template-projects README](template-projects/README_vi.md) để biết quy trình phát triển hoàn chỉnh, bao gồm cách sử dụng shared components và thêm template mới.
+
 ---
 
 ## Thêm Trò chơi Mới — Khởi động Nhanh
 
-> 📚 **Để biết hướng dẫn chi tiết**, xem [Builder README — Thêm một Trò chơi Mới](builder-projects/electron-app-mui/README_vi.md#thêm-một-trò-chơi-mới).
+> 📚 **Để biết hướng dẫn chi tiết từng bước**, xem [template-projects README — Thêm Game Template Mới](template-projects/README_vi.md#thêm-game-template-mới).
 
 ### Tổng quan
 
-1. **Tạo dự án template** — Copy `template-projects/group-sort` hoặc scaffold từ đầu
-2. **Đăng ký trong `build-templates.sh`** — Thêm một dòng vào mảng `GAMES`
-3. **Đăng ký trong CI workflow** — Thêm vào `.github/workflows/build-all.yml`
-4. **Thêm kiểu TypeScript** — Trong `builder-projects/electron-app-mui/src/shared/types.ts`
-5. **Tạo thành phần editor** — Trong `builder-projects/electron-app-mui/src/renderer/src/games/`
-6. **Đăng ký editor** — Trong `builder-projects/electron-app-mui/src/renderer/src/games/registry.ts`
-7. **Thêm data transform (nếu cần)** — Trong `builder-projects/electron-app-mui/src/main/gameRegistry.ts`
-8. **Kiểm tra cục bộ** — Build template, chạy builder, xác minh end-to-end
+**Trong template-projects/:**
+1. **Tạo dự án template** — Copy `template-projects/group-sort`
+2. **Cập nhật package.json** — Đổi tên trùng với tên thư mục
+3. **Đăng ký trong workspace** — Thêm vào `template-projects/package.json` workspaces và scripts
+4. **Tạo meta.json** — Thêm metadata của template
+5. **Cài đặt dependencies** — Chạy `yarn install` từ `template-projects/`
+
+**Trong builder-projects/electron-app-mui/:**
+6. **Đăng ký trong `build-templates.sh`** — Thêm vào mảng `GAMES`
+7. **Đăng ký trong CI workflow** — Thêm vào `.github/workflows/build-all.yml`
+8. **Thêm kiểu TypeScript** — Trong `src/shared/types.ts`
+9. **Tạo thành phần editor** — Trong `src/renderer/src/games/`
+10. **Đăng ký editor** — Trong `src/renderer/src/games/registry.ts`
+11. **Thêm data transform (nếu cần)** — Trong `src/main/gameRegistry.ts`
 
 ### Các Tệp Chính cần Sửa
 
 | Tệp                                                                    | Mục đích                                         |
 | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| `template-projects/package.json`                                       | Thêm vào workspaces và build scripts             |
 | `build-templates.sh`                                                   | Đăng ký game template mới cho builds cục bộ      |
 | `.github/workflows/build-all.yml`                                      | Đăng ký cho CI builds                            |
 | `builder-projects/electron-app-mui/src/shared/types.ts`                | Thêm các kiểu AppData                            |
 | `builder-projects/electron-app-mui/src/renderer/src/games/registry.ts` | Đăng ký thành phần editor                        |
 | `builder-projects/electron-app-mui/src/main/gameRegistry.ts`           | Thêm data transform (nếu hình dạng runtime khác) |
+
+> 💡 **Hướng dẫn đầy đủ:** Xem [template-projects README](template-projects/README_vi.md#thêm-game-template-mới) để biết hướng dẫn chi tiết.
 
 ---
 

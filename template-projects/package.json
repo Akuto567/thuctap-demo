@@ -13,8 +13,15 @@
     "word-search"
   ],
   "scripts": {
-    "build:all": "yarn workspaces foreach -A run build",
-    "build:tutorial-viewer": "yarn workspace @minigame/tutorial-viewer run build"
+    "build:shared": "yarn workspaces foreach -A -p --include '@minigame/*' run build",
+    "build:all": "yarn build:shared && yarn workspaces foreach -A -p --exclude '@minigame/*' --exclude 'minigame-templates' run build",
+    "build:group-sort": "yarn workspace group-sort run build",
+    "build:balloon-letter-picker": "yarn workspace balloon-letter-picker run build",
+    "build:labelled-diagram": "yarn workspace labelled-diagram run build",
+    "build:pair-matching": "yarn workspace pair-matching run build",
+    "build:plane-quiz": "yarn workspace plane-quiz run build",
+    "build:whack-a-mole": "yarn workspace whack-a-mole run build",
+    "build:word-search": "yarn workspace word-search run build"
   },
   "packageManager": "yarn@4.13.0"
 }

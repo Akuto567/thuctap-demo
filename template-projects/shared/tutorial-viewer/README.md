@@ -2,18 +2,36 @@
 
 A reusable React component for displaying tutorial images with navigation controls.
 
+> 💡 **This component serves as a scaffold for future shared libraries.** See the "Creating New Shared Libraries" section in [template-projects README](../../README.md) for how to create new shared components using this as a template.
+
 ## Features
 
 - **Auto-loading images**: Automatically loads `tutorial-1.png`, `tutorial-2.png`, etc. until no more images are found
 - **Manual image list**: Optionally provide your own list of image sources
 - **Keyboard navigation**: Arrow keys to navigate, Escape to close
 - **Scoped CSS**: Uses CSS Modules to avoid polluting global CSS namespace
+- **CSS bundled in JS**: Uses `vite-plugin-css-injected-by-js` - no CSS import needed in consuming projects
 - **Responsive**: Works on different screen sizes
 - **Accessible**: ARIA labels and keyboard support
 
 ## Installation
 
-In your game template project (e.g., `group-sort/`):
+**Prerequisites:**
+- Node.js 20+
+- Yarn 4 (`corepack enable && corepack prepare yarn@4.13.0 --activate`)
+
+**First time setup (after cloning):**
+
+```bash
+# 1. Install dependencies from template-projects root
+cd template-projects
+yarn install
+
+# 2. Build shared libraries (REQUIRED before first use)
+./build.sh    # or build.bat on Windows
+```
+
+**Then in your game project:**
 
 1. **Add the dependency** to your `package.json`:
 
@@ -25,7 +43,7 @@ In your game template project (e.g., `group-sort/`):
 }
 ```
 
-2. **Install from the template-projects root**:
+2. **Install dependencies:**
 
 ```bash
 cd template-projects
@@ -33,6 +51,8 @@ yarn install
 ```
 
 This sets up the workspace link so your project can import the component.
+
+> 💡 **Note:** After the initial setup, you can work directly in your game folder (`cd group-sort && yarn dev`). You only need to go back to root when adding new dependencies or rebuilding shared libraries.
 
 ## Usage
 
@@ -117,32 +137,49 @@ function App() {
 
 The tutorial-viewer is a **workspace package** - it's developed alongside the game templates but is not published to npm.
 
+**Note:** This component uses `vite-plugin-css-injected-by-js` to bundle CSS into the JavaScript output. This means consuming projects don't need to import CSS separately.
+
 ### Running Locally
 
 ```bash
-cd template-projects/tutorial-viewer
+cd template-projects/shared/tutorial-viewer
 yarn dev
 ```
 
 ### Building
 
 ```bash
-cd template-projects/tutorial-viewer
+cd template-projects/shared/tutorial-viewer
 yarn build
 ```
 
-The built output goes to `dist/` but during development, the source is used directly via workspace links.
+The built output goes to `dist/`. **This build step is required** before consuming projects can use the component.
+
+### After Making Changes
+
+If you modify the component, you must rebuild it:
+
+```bash
+cd template-projects/shared/tutorial-viewer
+yarn build
+```
+
+Then restart the dev server in any game that uses it.
 
 ## Project Structure
 
 ```
-tutorial-viewer/
+shared/tutorial-viewer/
 ├── src/
 │   ├── index.ts                    # Entry point & exports
 │   ├── TutorialViewer.tsx          # Main component
 │   └── TutorialViewer.module.css   # Locally scoped styles
+├── dist/                           # Built output (after running yarn build)
+│   ├── index.es.js                 # ES module
+│   ├── index.umd.js                # UMD bundle
+│   └── index.d.ts                  # TypeScript declarations
 ├── package.json
-├── vite.config.ts                  # Vite Library Mode config
+├── vite.config.ts                  # Vite Library Mode with CSS injection
 ├── tsconfig.json
 └── README.md
 ```
@@ -153,12 +190,22 @@ tutorial-viewer/
 
 The `template-projects/` directory is configured as a **Yarn workspace**. This means:
 
-1. Each subdirectory (including `tutorial-viewer` and game templates) is a workspace package
+1. Each subdirectory (including `shared/tutorial-viewer` and game templates) is a workspace package
 2. Packages can reference each other using `workspace:*` in their dependencies
 3. Running `yarn install` at the root links all packages together
 4. Each game template can still be opened independently in an IDE
 
-### Development Workflow
+### CSS Injection
+
+The component uses `vite-plugin-css-injected-by-js` during build to:
+
+- Bundle CSS into the JavaScript output
+- Inject styles automatically when the component is imported
+- Avoid requiring CSS imports in consuming projects
+
+This is different from typical CSS Modules usage - the CSS is part of the JS bundle, not a separate file.
+
+## Development Workflow
 
 **Option 1: Work from template-projects root**
 
@@ -177,15 +224,6 @@ yarn install  # This runs from the workspace root automatically
 ```
 
 Both approaches work because Yarn workspaces hoist dependencies to the root `node_modules`.
-
-### Vite Library Mode
-
-The component uses Vite's library mode to:
-
-- Bundle the component as an ES module
-- Generate TypeScript declarations
-- Keep React as a peer dependency (not bundled)
-- Support CSS Modules for scoped styling
 
 ## CSS Scoping
 
