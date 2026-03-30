@@ -1,35 +1,47 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import GamePreview from "../components/Game/GamePreview";
 import { generateWordSearch } from "../engine/generateWordSearch";
-import { getBrightness } from "../utils/imageUtils";
-import { createPortal } from "react-dom";
+
 const customBackground = "";
 
 export default function WordSearchPage() {
-  const [items, setItems] = useState(window.APP_DATA?.items || [
+  const [items] = useState(window.APP_DATA?.items || [
     { word: "CAT", image: "🐱" },
     { word: "FLOWER", image: "🌸" },
     { word: "JUMP", image: "🦘" },
     { word: "BIRD", image: "🐦" },
-    { word: "STAR", image: "⭐" },
+    { word: "STAR", image: "⭐" }
   ]);
-  const [background, setBackground] = useState(window.APP_DATA?.background || customBackground);
+  const [background] = useState(window.APP_DATA?.background || customBackground);
   const [grid, setGrid] = useState([]);
   const [foundCells, setFoundCells] = useState([]);
   const [placements, setPlacements] = useState([]);
   const [foundWords, setFoundWords] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
-  const [textColor, setTextColor] = useState("#000");
-  const [helperTextColor, setHelperTextColor] = useState("rgba(0, 0, 0, 0.72)");
   const [selectedCells, setSelectedCells] = useState([]);
-
-  const isDraggingRef = useRef(false);
-  const selectedRef = useRef([]);
-  const directionRef = useRef(null);
   const [showCongrats, setShowCongrats] = useState(false);
 
+  const isDraggingRef = useRef(false);
+  const anchorCellRef = useRef(null);
+  const selectedRef = useRef([]);
+  const directionRef = useRef(null);
+
+  const SNAP_DIRECTIONS = [
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: -1, dy: -1 }
+  ];
+
   const generateGame = () => {
-    const words = items.map((item) => item.word.trim().toUpperCase()).filter((word) => word);
+    const words = items
+      .map((item) => item.word.trim().toUpperCase())
+      .filter((word) => word);
 
     if (words.length === 0) {
       return;
@@ -46,91 +58,125 @@ export default function WordSearchPage() {
 
   useEffect(() => {
     generateGame();
-    // keep explicit background value rather than auto-switching based on items
   }, []);
-  useEffect(() => {
-    console.log("COMPONENT MOUNTED");
-  }, []);
-  useEffect(() => {
-    console.log("found:", foundWords.length, "placements:", placements.length);
 
+  useEffect(() => {
     if (foundWords.length === placements.length && placements.length > 0) {
-      console.log("WIN 🎉");
       setShowCongrats(true);
     }
   }, [foundWords, placements]);
-  useEffect(() => {
-    if (!background) {
-      setTextColor("#000");
-      setHelperTextColor("rgba(0, 0, 0, 0.72)");
-      return;
+
+  const buildSelection = (start, direction, steps) => {
+    if (!direction || steps <= 0) {
+      return [start];
     }
 
-    getBrightness(background).then((brightness) => {
-      if (brightness < 128) {
-        setTextColor("#fff");
-        setHelperTextColor("rgba(255, 255, 255, 0.82)");
-      } else {
-        setTextColor("#000");
-        setHelperTextColor("rgba(0, 0, 0, 0.72)");
+    return Array.from({ length: steps + 1 }, (_, index) => ({
+      row: start.row + direction.dy * index,
+      col: start.col + direction.dx * index
+    }));
+  };
+
+  const getMaxStepsInDirection = (start, direction) => {
+    const rowCount = grid.length;
+    const colCount = grid[0]?.length || 0;
+
+    if (!rowCount || !colCount) {
+      return 0;
+    }
+
+    const rowLimit =
+      direction.dy > 0
+        ? rowCount - 1 - start.row
+        : direction.dy < 0
+          ? start.row
+          : Number.POSITIVE_INFINITY;
+
+    const colLimit =
+      direction.dx > 0
+        ? colCount - 1 - start.col
+        : direction.dx < 0
+          ? start.col
+          : Number.POSITIVE_INFINITY;
+
+    return Math.min(rowLimit, colLimit);
+  };
+
+  const getSnappedSelection = (start, target) => {
+    const deltaCol = target.col - start.col;
+    const deltaRow = target.row - start.row;
+
+    if (deltaCol === 0 && deltaRow === 0) {
+      return {
+        direction: null,
+        cells: [start]
+      };
+    }
+
+    const bestMatch = SNAP_DIRECTIONS.reduce((best, direction) => {
+      const denominator = direction.dx * direction.dx + direction.dy * direction.dy;
+      const projectedSteps = Math.round(
+        ((deltaCol * direction.dx) + (deltaRow * direction.dy)) / denominator
+      );
+
+      if (projectedSteps <= 0) {
+        return best;
       }
-    }).catch(() => {
-      setTextColor("#000");
-      setHelperTextColor("rgba(0, 0, 0, 0.72)");
-    });
-  }, [background]);
+
+      const steps = Math.min(projectedSteps, getMaxStepsInDirection(start, direction));
+      if (steps <= 0) {
+        return best;
+      }
+
+      const projectedCell = {
+        row: start.row + direction.dy * steps,
+        col: start.col + direction.dx * steps
+      };
+
+      const error =
+        Math.abs(target.row - projectedCell.row) +
+        Math.abs(target.col - projectedCell.col);
+
+      if (!best || error < best.error || (error === best.error && steps > best.steps)) {
+        return { direction, steps, error };
+      }
+
+      return best;
+    }, null);
+
+    if (!bestMatch) {
+      return {
+        direction: null,
+        cells: [start]
+      };
+    }
+
+    return {
+      direction: bestMatch.direction,
+      cells: buildSelection(start, bestMatch.direction, bestMatch.steps)
+    };
+  };
 
   const extendSelection = (row, col) => {
     if (!isDraggingRef.current) {
       return;
     }
 
-    const index = selectedRef.current.findIndex(
-      (cell) => cell.row === row && cell.col === col
-    );
-
-    if (index !== -1) {
-      selectedRef.current = selectedRef.current.slice(0, index + 1);
-      setSelectedCells([...selectedRef.current]);
+    const startCell = anchorCellRef.current;
+    if (!startCell) {
       return;
     }
 
-    const last = selectedRef.current[selectedRef.current.length - 1];
-    if (!last) {
-      return;
-    }
-
-    const dx = col - last.col;
-    const dy = row - last.row;
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-      return;
-    }
-
-    const stepX = dx === 0 ? 0 : dx / Math.abs(dx);
-    const stepY = dy === 0 ? 0 : dy / Math.abs(dy);
-
-    if (selectedRef.current.length === 1) {
-      directionRef.current = { dx: stepX, dy: stepY };
-      selectedRef.current.push({ row, col });
-      setSelectedCells([...selectedRef.current]);
-      return;
-    }
-
-    if (!directionRef.current) {
-      return;
-    }
-
-    if (stepX !== directionRef.current.dx || stepY !== directionRef.current.dy) {
-      return;
-    }
-
-    selectedRef.current.push({ row, col });
+    const { direction, cells } = getSnappedSelection(startCell, { row, col });
+    directionRef.current = direction;
+    selectedRef.current = cells;
     setSelectedCells([...selectedRef.current]);
   };
 
-  const handlePointerDown = (row, col, pointerType = "mouse") => {
+  const handlePointerDown = (row, col) => {
     isDraggingRef.current = true;
     const cell = { row, col };
+    anchorCellRef.current = cell;
     selectedRef.current = [cell];
     setSelectedCells([cell]);
     directionRef.current = null;
@@ -194,90 +240,96 @@ export default function WordSearchPage() {
   };
 
   const handlePointerUp = () => {
-    console.log("POINTER UP");
     if (!isDraggingRef.current) {
       return;
     }
 
     isDraggingRef.current = false;
     const foundWord = checkWord(selectedRef.current);
-    console.log("FOUND WORD:", foundWord); // 👈 thêm dòng này
+
     if (foundWord) {
       const placement = placements.find((item) => item.word === foundWord);
       if (placement) {
         setFoundCells((prev) => [...prev, ...placement.positions]);
         setFoundWords((prev) => {
           if (prev.includes(foundWord)) {
-            return [...prev]; // 👈 tạo array mới
+            return [...prev];
           }
           return [...prev, foundWord];
         });
       }
     }
+
     selectedRef.current = [];
+    anchorCellRef.current = null;
     setSelectedCells([]);
     directionRef.current = null;
   };
 
-const handleRestart = () => {
-  setShowCongrats(false);
-  generateGame();
-};
+  const handleRestart = () => {
+    setShowCongrats(false);
+    generateGame();
+  };
 
   return (
-  <>
-    <div className="game-page">
-      {/* ❗ Ẩn game khi win */}
-      {showPreview && !showCongrats && (
-        <GamePreview
-          grid={grid}
-          items={items}
-          background={background}
-          textColor={textColor}
-          helperTextColor={helperTextColor}
-          selectedCells={selectedCells}
-          foundCells={foundCells}
-          foundWords={foundWords}
-          onPointerDown={handlePointerDown}
-          onPointerEnter={handlePointerEnter}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-      )}
-    </div>
+    <>
+      <div className="game-page">
+        {showPreview && (
+          <GamePreview
+            grid={grid}
+            items={items}
+            background={background}
+            selectedCells={selectedCells}
+            foundCells={foundCells}
+            foundWords={foundWords}
+            onPointerDown={handlePointerDown}
+            onPointerEnter={handlePointerEnter}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+        )}
+      </div>
 
-    {/* ✅ Popup */}
-    {showCongrats &&
-      createPortal(
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 999999,
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "16px",
-              textAlign: "center",
-            }}
-          >
-            <h2>🎉 Congratulations!</h2>
-            <p>You found all the words!</p>
+      <div
+        className="game-page"
+        style={{
+          pointerEvents: showCongrats ? "none" : "auto",
+          filter: showCongrats ? "blur(2px)" : "none"
+        }}
+      />
 
-            <button onClick={handleRestart}>
-              Play Again
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
-  </>
-);
+      {showCongrats &&
+        createPortal(
+          <div className="popup-overlay">
+            <div className="popup-content popup-card">
+              <div className="popup-badge">Complete</div>
+              <h2 className="popup-title">Congratulations!</h2>
+
+              <p className="popup-text">
+                You found all the words in this puzzle.
+              </p>
+
+              <div className="popup-stats">
+                <div className="popup-stat">
+                  <span className="popup-stat-value">{placements.length}</span>
+                  <span className="popup-stat-label">Words found</span>
+                </div>
+                <div className="popup-stat">
+                  <span className="popup-stat-value">100%</span>
+                  <span className="popup-stat-label">Progress</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleRestart}
+                className="popup-btn"
+              >
+                Play Again
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
 }

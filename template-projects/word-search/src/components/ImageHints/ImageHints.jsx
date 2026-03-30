@@ -3,6 +3,20 @@ export default function ImageHints({ items, foundWords }) {
     return str && (str.includes("/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(str));
   };
 
+  const getWordSizeClass = (word = "") => {
+    const length = word.trim().length;
+
+    if (length >= 10) {
+      return "hint-word hint-word--small";
+    }
+
+    if (length >= 7) {
+      return "hint-word hint-word--medium";
+    }
+
+    return "hint-word";
+  };
+
   return (
     <div className="image-hints">
       {items.map((item) => (
@@ -13,20 +27,15 @@ export default function ImageHints({ items, foundWords }) {
           {isImagePath(item.image) ? (
             <img src={item.image} alt={item.word} />
           ) : (
-            <div
-              style={{
-                fontSize: "60px",
-                height: "60px",
-                width: "60px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <div className="hint-emoji">
               {item.image}
             </div>
           )}
-          <p className={foundWords?.includes(item.word) ? "" : "hidden-word"}>
+          <p
+            className={`${getWordSizeClass(item.word)} ${
+              foundWords?.includes(item.word) ? "" : "hidden-word"
+            }`.trim()}
+          >
             {item.word}
           </p>
         </div>

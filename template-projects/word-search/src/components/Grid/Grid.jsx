@@ -16,6 +16,12 @@ export default function Grid({
   const isFound = (row, col) =>
     foundCells?.some((cell) => cell.row === row && cell.col === col);
 
+  const rowCount = grid.length || 12;
+  const colCount = grid.reduce(
+    (max, row) => Math.max(max, row?.length || 0),
+    rowCount || 12
+  );
+
   return (
     <div
       className="grid-shell"
@@ -24,7 +30,13 @@ export default function Grid({
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      <div className="grid">
+      <div
+        className="grid"
+        style={{
+          "--grid-columns": colCount,
+          "--grid-rows": rowCount
+        }}
+      >
         {grid.map((row, rowIndex) =>
           row.map((letter, colIndex) => (
             <Cell

@@ -6,8 +6,6 @@ export default function GamePreview({
   grid,
   items,
   background,
-  textColor,
-  helperTextColor,
   selectedCells,
   foundCells,
   foundWords,
@@ -19,90 +17,59 @@ export default function GamePreview({
   const uniqueFoundCount = new Set(foundWords).size;
   const totalWords = items.length;
   const progressPercent = totalWords ? Math.round((uniqueFoundCount / totalWords) * 100) : 0;
+  const titleStyle = background
+    ? { color: "#ffffff", mixBlendMode: "difference" }
+    : { color: "#172033" };
+  const helperStyle = background
+    ? { color: "#ffffff", mixBlendMode: "difference" }
+    : { color: "rgba(23, 32, 51, 0.78)" };
 
   return (
     <div className="overlay">
       <div
         className="overlay-content"
         style={{
-          background: background
-            ? `${formatCssUrl(background)} center / cover no-repeat`
-            : "#fff",
-          color: textColor
+          background: background ? formatCssUrl(background) : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundColor: "transparent"
         }}
       >
-        <h2>Word Search Game</h2>
+        <div className="game-topbar">
+          <h2 className="game-title" style={titleStyle}>Word Search Game</h2>
 
-        <div
-          className="progress-container"
-          style={{
-            position: "relative",
-            margin: "8px 0 16px",
-            height: "28px",
-            width: "260px",
-            minWidth: "200px"
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: 0,
-              right: 0,
-              transform: "translateY(-50%)",
-              height: "14px",
-              background: "rgba(230, 230, 230, 0.9)",
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: "8px"
-            }}
-          />
-          <div
-            className="progress-fill"
-            style={{
-              width: `${progressPercent}%`,
-              background: "rgba(33, 150, 243, 0.95)",
-              height: "14px",
-              borderRadius: "8px",
-              transition: "width 0.2s ease",
-              position: "absolute",
-              top: "50%",
-              left: 0,
-              transform: "translateY(-50%)"
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "#fff",
-              textShadow: "0 0 4px rgba(0,0,0,0.5)"
-            }}
-          >
-            {uniqueFoundCount}/{totalWords} ({progressPercent}%)
+          <div className="progress-container">
+            <div className="progress-track" />
+            <div
+              className="progress-fill"
+              style={{
+                width: `${progressPercent}%`
+              }}
+            />
+            <div className="progress-label">
+              {uniqueFoundCount}/{totalWords} ({progressPercent}%)
+            </div>
           </div>
+
+          <p className="game-helper" style={helperStyle}>
+            Drag across the grid to find words. On phones, swipe directly on the letters.
+          </p>
         </div>
+        <div className="game-scale">
+          <div className="game-wrapper">
+            <Grid
+              grid={grid}
+              selectedCells={selectedCells || []}
+              foundCells={foundCells || []}
+              onPointerDown={onPointerDown}
+              onPointerEnter={onPointerEnter}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+            />
 
-        <p className="game-helper" style={{ color: helperTextColor }}>
-          Drag across the grid to find words. On phones, swipe directly on the
-          letters.
-        </p>
-
-        <div className="game-wrapper">
-          <Grid
-            grid={grid}
-            selectedCells={selectedCells || []}
-            foundCells={foundCells || []}
-            onPointerDown={onPointerDown}
-            onPointerEnter={onPointerEnter}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-          />
-
-          <ImageHints items={items} foundWords={foundWords} />
+            <ImageHints items={items} foundWords={foundWords} />
+          </div>
         </div>
       </div>
     </div>
