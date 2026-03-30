@@ -6,6 +6,7 @@ export function HUD({
   matched,
   total,
   onRestart,
+  onShowTutorial,
   isLandscape,
   uiScale,
   isNarrow,
@@ -64,10 +65,16 @@ export function HUD({
         {/* Instructions */}
         <Instructions uiScale={uiScale} compact={isNarrow} />
 
-        {/* Restart */}
-        <div className="flex justify-center mt-2">
+        {/* Restart & Tutorial */}
+        <div className="flex flex-col items-center mt-2" style={{ gap: baseGap * 0.5 }}>
           <RestartButton
             onClick={onRestart}
+            uiScale={uiScale}
+            iconOnly={isNarrow}
+            large={!isNarrow}
+          />
+          <TutorialButton
+            onClick={onShowTutorial}
             uiScale={uiScale}
             iconOnly={isNarrow}
             large={!isNarrow}
@@ -83,7 +90,7 @@ export function HUD({
       className="flex flex-col w-full"
       style={{ gap: 20 * uiScale, padding: 8 * uiScale }}
     >
-      {/* Row 1: Title, Progress, Restart (icon) */}
+      {/* Row 1: Title, Progress, Restart (icon), Tutorial (icon) */}
       <div className="flex items-center" style={{ gap: baseGap }}>
         <motion.h2
           className="font-black text-transparent bg-clip-text shrink-0"
@@ -99,7 +106,10 @@ export function HUD({
           <ProgressBar progress={progress} uiScale={uiScale} hideLabel chunky />
         </div>
 
-        <RestartButton onClick={onRestart} uiScale={uiScale} iconOnly large />
+        <div className="flex items-center" style={{ gap: baseGap * 0.5 }}>
+          <RestartButton onClick={onRestart} uiScale={uiScale} iconOnly large />
+          <TutorialButton onClick={onShowTutorial} uiScale={uiScale} iconOnly large />
+        </div>
       </div>
 
       {/* Row 2: Stats and Instructions */}
@@ -263,6 +273,43 @@ function RestartButton({
         🔄
       </span>
       {!iconOnly && "Chơi lại"}
+    </motion.button>
+  );
+}
+
+function TutorialButton({
+  onClick,
+  uiScale,
+  iconOnly,
+  large = false,
+}: {
+  onClick: () => void;
+  uiScale: number;
+  iconOnly?: boolean;
+  large?: boolean;
+}) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className="font-bold text-white shadow-lg flex items-center justify-center shrink-0"
+      style={{
+        background: "linear-gradient(135deg, #2563eb, #1e40af)",
+        padding: iconOnly
+          ? 10 * uiScale
+          : `${(large ? 18 : 10) * uiScale}px ${(large ? 32 : 20) * uiScale}px`,
+        borderRadius: (large ? 20 : 12) * uiScale,
+        fontSize: (large ? 20 : 16) * uiScale,
+        gap: 12 * uiScale,
+        width: iconOnly ? (large ? 60 : 44) * uiScale : "auto",
+        height: iconOnly ? (large ? 60 : 44) * uiScale : "auto",
+      }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <span style={{ fontSize: (iconOnly ? (large ? 28 : 20) : 18) * uiScale }}>
+        📖
+      </span>
+      {!iconOnly && "Hướng dẫn"}
     </motion.button>
   );
 }

@@ -56,8 +56,9 @@ export function TutorialViewer({
     [],
   );
   const [isLoading, setIsLoading] = useState(false);
-  // const [_hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  // const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Use provided images or auto-load tutorial-N.png files
   const tutorialImages: TutorialImage[] = images || autoLoadedImages;
@@ -177,7 +178,7 @@ export function TutorialViewer({
           onClose();
         }}
       >
-        <div className={styles.modal}>
+        <div className={styles.modal} ref={modalRef}>
           <div className={styles.header}>
             <h2 className={styles.title}>Tutorial</h2>
             <button
@@ -206,7 +207,7 @@ export function TutorialViewer({
           onClose();
         }}
       >
-        <div className={styles.modal}>
+        <div className={styles.modal} ref={modalRef}>
           <div className={styles.header}>
             <h2 className={styles.title}>Tutorial</h2>
             <button
@@ -237,7 +238,7 @@ export function TutorialViewer({
         onClose();
       }}
     >
-      <div className={styles.modal}>
+      <div className={styles.modal} ref={modalRef}>
         <div className={styles.header}>
           <h2 className={styles.title}>Tutorial</h2>
           <button
@@ -269,7 +270,7 @@ export function TutorialViewer({
             ))}
           </div>
           <span className={styles.pageIndicator}>
-            {currentIndex + 1} of {totalImages}
+            {currentIndex + 1} / {totalImages}
           </span>
         </div>
 

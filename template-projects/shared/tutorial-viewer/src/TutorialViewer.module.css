@@ -26,13 +26,18 @@
 .modal {
   background: white;
   border-radius: 12px;
-  width: 90vw;
-  max-width: 800px;
-  max-height: 90vh;
+  /* Responsive width - takes percentage of screen */
+  width: 85vw;
+  max-width: 1200px;
+  min-width: 320px;
+  /* Responsive height - takes percentage of screen */
+  height: 85vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: slideUp 0.3s ease-out;
+  /* Ensure modal stays within viewport */
   margin: auto;
 }
 
@@ -40,14 +45,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e5e5e5;
   background: #f8f9fa;
+  flex-shrink: 0;
 }
 
 .title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -55,7 +61,7 @@
 .closeButton {
   background: transparent;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
   padding: 4px 8px;
   color: #666;
@@ -63,6 +69,7 @@
   transition:
     background-color 0.2s,
     color 0.2s;
+  line-height: 1;
 }
 
 .closeButton:hover {
@@ -75,10 +82,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  min-height: 400px;
-  max-height: 70vh;
-  overflow: hidden;
+  padding: 16px;
+  overflow: auto;
+  min-height: 0;
+  background-color: #f5f5f5;
 }
 
 .image {
@@ -88,22 +95,29 @@
   width: auto;
   height: auto;
   object-fit: contain;
+  display: block;
+  margin: 0 auto;
 }
 
 .loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
   color: #666;
-  font-size: 1rem;
+  font-size: 0.875rem;
+  padding: 20px;
 }
 
 .noImages {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  min-height: 200px;
+  flex: 1;
   color: #666;
-  font-size: 1rem;
+  font-size: 0.875rem;
   text-align: center;
+  padding: 20px;
 }
 
 .noImages p {
@@ -112,23 +126,24 @@
 
 .stepperContainer {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  padding: 8px 16px;
   background: #f8f9fa;
+  border-top: 1px solid #e5e5e5;
   border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0;
 }
 
 .stepper {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
 .step {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background-color: #ddd;
   transition:
@@ -138,11 +153,11 @@
 
 .activeStep {
   background-color: #007bff;
-  transform: scale(1.2);
+  transform: scale(1.25);
 }
 
 .pageIndicator {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #666;
   font-weight: 500;
 }
@@ -151,10 +166,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-top: 1px solid #e5e5e5;
+  padding: 12px 16px;
   background: #f8f9fa;
-  gap: 16px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 /* Left side container that stays even when empty */
@@ -175,12 +190,13 @@
   background: #007bff;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .navButton:hover:not(:disabled) {
@@ -209,5 +225,66 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .modal {
+    width: 95vw;
+    height: 90vh;
+    max-height: 90vh;
+  }
+
+  .header {
+    padding: 10px 12px;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .imageContainer {
+    padding: 12px;
+  }
+
+  .stepperContainer {
+    padding: 6px 12px;
+  }
+
+  .controls {
+    padding: 10px 12px;
+  }
+
+  .navButton {
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .step {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .modal {
+    width: 98vw;
+    height: 95vh;
+    max-height: 95vh;
+  }
+
+  .navButton {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .step {
+    gap: 4px;
+  }
+
+  .pageIndicator {
+    font-size: 0.7rem;
   }
 }

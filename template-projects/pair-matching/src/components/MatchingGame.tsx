@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { TutorialViewer } from "@minigame/tutorial-viewer";
 import type { GameConfig, CardState } from "../types/objects";
 import { buildDeck, getOptimalGrid } from "../utils";
 import Card from "./Card";
@@ -24,6 +25,7 @@ export default function MatchingGame() {
     "idle" | "happy" | "sad" | null
   >(null);
   const [gameWon, setGameWon] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const mascotTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Grid dimensions (fixed from deck build)
@@ -212,6 +214,7 @@ export default function MatchingGame() {
           total={totalPairs}
           mascotState={mascotState}
           onRestart={restart}
+          onShowTutorial={() => setShowTutorial(true)}
           isLandscape={isLandscape}
           uiScale={uiScale}
           isNarrow={isNarrow}
@@ -262,6 +265,15 @@ export default function MatchingGame() {
       <AnimatePresence>
         {gameWon && <WellDoneScreen onRestart={restart} />}
       </AnimatePresence>
+
+      {/* Tutorial Viewer */}
+      <TutorialViewer
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        basePath="images/"
+        filenamePattern="tutorial"
+        fileExtension="png"
+      />
     </div>
   );
 }
