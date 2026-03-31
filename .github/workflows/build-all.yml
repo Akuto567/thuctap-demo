@@ -29,6 +29,8 @@ jobs:
             game_id: "word-search"
           - project_path: "template-projects/whack-a-mole"
             game_id: "whack-a-mole"
+          - project_path: "template-projects/find-the-treasure"
+            game_id: "find-the-treasure"
 
           # Add more Project A's (Templates) here:
           # - project_path: "apps/mini-game-2"

@@ -24,6 +24,7 @@ GAMES=(
   "pair-matching"
   "word-search"
   "whack-a-mole"
+  "find-the-treasure"
   # "my-new-game"
 )
 

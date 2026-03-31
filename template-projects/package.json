@@ -10,7 +10,8 @@
     "pair-matching",
     "plane-quiz",
     "whack-a-mole",
-    "word-search"
+    "word-search",
+    "find-the-treasure"
   ],
   "scripts": {
     "build:shared": "yarn workspaces foreach -A -p --include '@minigame/*' run build",
@@ -21,7 +22,8 @@
     "build:pair-matching": "yarn workspace pair-matching run build",
     "build:plane-quiz": "yarn workspace plane-quiz run build",
     "build:whack-a-mole": "yarn workspace whack-a-mole run build",
-    "build:word-search": "yarn workspace word-search run build"
+    "build:word-search": "yarn workspace word-search run build",
+    "build:find-the-treasure": "yarn workspace find-the-treasure run build"
   },
   "packageManager": "yarn@4.13.0"
 }
