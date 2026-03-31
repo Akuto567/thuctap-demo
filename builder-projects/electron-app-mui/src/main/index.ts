@@ -1,5 +1,6 @@
 import archiver from 'archiver'
 import { app, BrowserWindow, dialog, net, protocol, shell } from 'electron'
+import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import * as fs from 'fs'
 import * as path from 'path'
 import type { AnyAppData, FolderStatus, GameTemplate, GlobalSettings, ProjectFile } from '../shared'
@@ -251,6 +252,14 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  if (isDev) {
+    const extensions = [REACT_DEVELOPER_TOOLS]
+    console.log('Installing extensions', extensions)
+    installExtension(extensions, { loadExtensionOptions: { allowFileAccess: true } })
+      .then((exts) => console.log(`Added Extensions:`, exts))
+      .catch((err) => console.log('An error occurred Adding Extensions: ', err))
+  }
 })
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
