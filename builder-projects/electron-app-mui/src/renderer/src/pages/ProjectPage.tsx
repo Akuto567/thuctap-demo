@@ -3,42 +3,24 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-    BackConfirmDialog,
-    ExportMenu,
-    ProjectSnackbar,
-    RenameDialog,
-    SaveAsConfirmDialog
+  BackConfirmDialog,
+  ExportMenu,
+  ProjectSnackbar,
+  RenameDialog,
+  SaveAsConfirmDialog
 } from '../components/project/ProjectDialogs'
 import { ProjectToolbar } from '../components/project/ProjectToolbar'
 import SettingsPanel from '../components/SettingsPanel'
-import {
-    getHistoryArray,
-    ProjectHistoryProvider,
-    useProjectHistory
-} from '../context/ProjectHistoryContext'
+import { ProjectHistoryProvider, useProjectHistory } from '../context/ProjectHistoryContext'
+import { useSnackbar } from '../hooks'
 import { useProjectShortcuts } from '../hooks/useProjectShortcuts'
 import { useTemplateManager } from '../hooks/useTemplates'
 import { AnyAppData, ProjectFile, ProjectMeta } from '../types'
+import { getHistoryArray } from '../utils/historyUtils'
+import { buildProjectFile, buildProjectTitle } from '../utils/projectFileUtils'
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const SNACKBAR_AUTO_HIDE_MS = 3500
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function buildTitle(templateId: string, projectName: string, filePath: string): string {
-  return `[${templateId}] ${projectName} — ${filePath}`
-}
-
-function buildProjectFile(meta: ProjectMeta, appData: AnyAppData): ProjectFile {
-  return {
-    version: '1.0.0',
-    templateId: meta.templateId,
-    name: meta.name,
-    createdAt: meta.createdAt,
-    updatedAt: new Date().toISOString(),
-    settings: meta.settings,
-    appData
-  }
-}
+const AUTO_SAVE_DEBOUNCE_MS = 1000
 
 // ── Inner Component (uses history) ───────────────────────────────────────────
 interface ProjectPageInnerProps {
@@ -73,13 +55,16 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
 
   const {
     present: appData,
-    setPresent: setAppData,
+    setPresent,
     undo: historyUndo,
     redo: historyRedo,
     getHistory,
     canUndo,
     canRedo
   } = useProjectHistory()
+
+  // Snackbar hook
+  const { message: snackMsg, severity: snackSeverity, showSnack, hideSnack } = useSnackbar()
 
   // Wrapped undo/redo that marks document as dirty
   const handleUndo = useCallback(() => {
@@ -107,7 +92,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     if (!meta || !templateId) return
     const template = manager.getTemplate(templateId)
     const tName = template?.name ?? templateId
-    const title = buildTitle(tName, meta.name, meta.filePath)
+    const title = buildProjectTitle(tName, meta.name, meta.filePath)
     document.title = title
     window.electronAPI.setTitle(title)
   }, [meta, templateId, manager])
@@ -120,11 +105,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saveAsConfirmFolder, setSaveAsConfirmFolder] = useState<string | null>(null)
 
-  // Snackbar management
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' | 'info' } | null>(null)
-  const showSnackSimple = useCallback((msg: string, severity: 'success' | 'error' | 'info' = 'success') => setSnack({ msg, severity }), [])
-
-  // ── Refs for auto-save (kept in sync via effect below) ─────────────────────
+  // ── Refs for auto-save ─────────────────────────────────────────────────────
   const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const metaRef = useRef(meta)
@@ -160,12 +141,12 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         )
         setIsDirty(false)
         setSaveAsConfirmFolder(null)
-        showSnackSimple(`Saved to: ${newLoc.projectDir}`)
+        showSnack(`Saved to: ${newLoc.projectDir}`)
       } catch (e) {
-        showSnackSimple(`Save As failed: ${e}`, 'error')
+        showSnack(`Save As failed: ${e}`, 'error')
       }
     },
-    [meta, appData, getHistory, showSnackSimple]
+    [meta, appData, getHistory, showSnack]
   )
 
   // ── Auto-save: interval mode ───────────────────────────────────────────────
@@ -193,7 +174,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     }
   }, [resolved.autoSave.mode, resolved.autoSave.intervalSeconds, doSave])
 
-  // ── Auto-save: on-edit mode ────────────────────────────────────────────────
+  // ── Auto-save: on-edit mode cleanup ────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (onEditTimerRef.current) {
@@ -206,9 +187,17 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   // ── App data change (from editor) ─────────────────────────────────────────
   const handleAppDataChange = useCallback(
     (newData: AnyAppData) => {
-      setAppData(newData)
+      // Update history state (for undo/redo)
+      setPresent(newData)
+      
+      // Update dirty state
       setIsDirty(true)
+      
+      // Update refs for auto-save
+      appDataRef.current = newData
+      isDirtyRef.current = true
 
+      // Auto-save on edit with debounce
       if (resolved.autoSave.mode === 'on-edit') {
         if (onEditTimerRef.current) clearTimeout(onEditTimerRef.current)
         onEditTimerRef.current = setTimeout(() => {
@@ -217,21 +206,21 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
               // Silently fail - user will see dirty indicator
             })
           }
-        }, SNACKBAR_AUTO_HIDE_MS)
+        }, AUTO_SAVE_DEBOUNCE_MS)
       }
     },
-    [setAppData, resolved.autoSave.mode, doSave]
+    [setPresent, resolved.autoSave.mode, doSave]
   )
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!meta) return
     try {
       await doSave(meta, appData)
-      showSnackSimple('Project saved!')
+      showSnack('Project saved!')
     } catch (e) {
-      showSnackSimple(`Save failed: ${e}`, 'error')
+      showSnack(`Save failed: ${e}`, 'error')
     }
-  }, [meta, appData, doSave, showSnackSimple])
+  }, [meta, appData, doSave, showSnack])
 
   // ── Save As ───────────────────────────────────────────────────────────────
   const handleSaveAs = useCallback(async (): Promise<void> => {
@@ -244,12 +233,12 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     if (result.status === 'has-project' || result.status === 'non-empty') {
       setSaveAsConfirmFolder(result.status === 'has-project' ? result.folder : null)
       if (result.status === 'non-empty') {
-        showSnackSimple('That folder already has files — choose an empty one.', 'info')
+        showSnack('That folder already has files — choose an empty one.', 'info')
         return
       }
     }
     await performSaveAs(result.folder)
-  }, [meta, appData, showSnackSimple, performSaveAs])
+  }, [meta, appData, showSnack, performSaveAs])
 
   // ── Export / Preview ───────────────────────────────────────────────────────
   const handleExport = async (mode: 'folder' | 'zip'): Promise<void> => {
@@ -263,9 +252,9 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         mode
       })
       if (result.canceled) return
-      showSnackSimple(`Exported to: ${result.path}`)
+      showSnack(`Exported to: ${result.path}`)
     } catch (e) {
-      showSnackSimple(`Export failed: ${e}`, 'error')
+      showSnack(`Export failed: ${e}`, 'error')
     }
   }
 
@@ -277,9 +266,9 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         appData: appData,
         projectDir: meta.projectDir
       })
-      showSnackSimple('Preview opened')
+      showSnack('Preview opened')
     } catch (e) {
-      showSnackSimple(`Preview failed: ${e}`, 'error')
+      showSnack(`Preview failed: ${e}`, 'error')
     }
   }
 
@@ -293,7 +282,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
       await doSave(updated, appData)
     } catch (e) {
       setMeta(meta)
-      showSnackSimple(`Rename failed: ${e}`, 'error')
+      showSnack(`Rename failed: ${e}`, 'error')
       throw e
     }
   }
@@ -413,9 +402,9 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
 
       {/* ── Snackbar ── */}
       <ProjectSnackbar
-        message={snack?.msg ?? null}
-        severity={snack?.severity ?? 'success'}
-        onClose={() => setSnack(null)}
+        message={snackMsg}
+        severity={snackSeverity}
+        onClose={hideSnack}
       />
     </Box>
   )

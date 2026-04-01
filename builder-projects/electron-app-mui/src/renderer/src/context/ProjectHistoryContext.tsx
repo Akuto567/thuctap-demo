@@ -94,20 +94,3 @@ export function useProjectHistory() {
     position
   }
 }
-
-// ── Helper: Get full history array ────────────────────────────────────────────
-/**
- * Get the full history array from history array getHistory.
- * Returns deep copies to prevent accidental mutation of history state.
- * Useful for saving/exporting the complete undo/redo stack.
- */
-export function getHistoryArray(
-  history: ReturnType<ReturnType<HistoryStore['getControls']>['getHistory']>
-): AnyAppData[] {
-  // Deep copy each entry to prevent mutation of history state
-  // It says entry is type (parameter) entry: StoreApi<{
-  //     data: AnyAppData;
-  //     setPresent: (newState: AnyAppData) => void;
-  // }> but in runtime it actually is just the state object
-  return history.map((entry) => structuredClone((entry as unknown as { data: AnyAppData }).data))
-}

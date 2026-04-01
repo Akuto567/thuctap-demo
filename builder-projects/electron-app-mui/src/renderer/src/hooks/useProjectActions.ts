@@ -1,5 +1,7 @@
 import { useCallback } from 'react'
-import { AnyAppData, ProjectFile, ProjectMeta } from '../types'
+import { AnyAppData, ProjectMeta } from '../types'
+import { getHistoryArray } from '../utils/historyUtils'
+import { buildProjectFile } from '../utils/projectFileUtils'
 
 export interface ProjectActionsOptions {
   meta: ProjectMeta | null
@@ -23,24 +25,12 @@ export function useProjectActions({
   getHistory,
   onSnack
 }: ProjectActionsOptions) {
-  const buildProjectFile = useCallback((currentMeta: ProjectMeta): ProjectFile => {
-    return {
-      version: '1.0.0',
-      templateId: currentMeta.templateId,
-      name: currentMeta.name,
-      createdAt: currentMeta.createdAt,
-      updatedAt: new Date().toISOString(),
-      settings: currentMeta.settings,
-      appData
-    }
-  }, [appData])
-
   // ── Save ─────────────────────────────────────────────────────────────────────
   const doSave = useCallback(async (currentMeta: ProjectMeta): Promise<void> => {
-    const file = buildProjectFile(currentMeta)
-    const history = getHistory().map((entry) => structuredClone(entry.data))
+    const file = buildProjectFile(currentMeta, appData)
+    const history = getHistoryArray(getHistory())
     await window.electronAPI.saveProject(file, currentMeta.filePath, history)
-  }, [buildProjectFile, getHistory])
+  }, [appData, getHistory])
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!meta) return
@@ -57,9 +47,9 @@ export function useProjectActions({
     async (folder: string): Promise<SaveAsResult | null> => {
       if (!meta) return null
       try {
-        const history = getHistory().map((entry) => structuredClone(entry.data))
+        const history = getHistoryArray(getHistory())
         const newLoc = await window.electronAPI.doSaveAs({
-          projectData: buildProjectFile(meta),
+          projectData: buildProjectFile(meta, appData),
           oldProjectDir: meta.projectDir,
           newFolder: folder,
           history
@@ -71,7 +61,7 @@ export function useProjectActions({
         return null
       }
     },
-    [meta, buildProjectFile, getHistory, onSnack]
+    [meta, appData, getHistory, onSnack]
   )
 
   const handleSaveAs = useCallback(async (): Promise<
@@ -81,7 +71,7 @@ export function useProjectActions({
   > => {
     if (!meta) return null
     const result = await window.electronAPI.saveProjectAs({
-      projectData: buildProjectFile(meta),
+      projectData: buildProjectFile(meta, appData),
       oldProjectDir: meta.projectDir
     })
     if (!result) return null

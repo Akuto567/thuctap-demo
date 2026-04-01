@@ -1,35 +1,11 @@
 import React, { createContext, useCallback, useEffect, useRef, useState } from 'react'
 import {
-  DEFAULT_GLOBAL_SETTINGS,
-  GlobalSettings,
-  ProjectSettings,
-  ResolvedSettings
+    DEFAULT_GLOBAL_SETTINGS,
+    GlobalSettings,
+    ProjectSettings,
+    ResolvedSettings
 } from '../types'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function mergeSettings(global: GlobalSettings, project?: ProjectSettings | null): ResolvedSettings {
-  if (!project) return global
-  return {
-    autoSave: {
-      mode: project.autoSave?.mode ?? global.autoSave.mode,
-      intervalSeconds: project.autoSave?.intervalSeconds ?? global.autoSave.intervalSeconds
-    },
-    prefillNames: project.prefillNames != null ? project.prefillNames : global.prefillNames
-  }
-}
-
-function deepMergeDefaults(saved: object): GlobalSettings {
-  const s = saved as Partial<GlobalSettings>
-  return {
-    autoSave: {
-      mode: s.autoSave?.mode ?? DEFAULT_GLOBAL_SETTINGS.autoSave.mode,
-      intervalSeconds:
-        s.autoSave?.intervalSeconds ?? DEFAULT_GLOBAL_SETTINGS.autoSave.intervalSeconds
-    },
-    prefillNames: s.prefillNames ?? DEFAULT_GLOBAL_SETTINGS.prefillNames
-  }
-}
+import { deepMergeDefaults, mergeSettings } from '../utils/settingsUtils'
 
 // ── Context types ─────────────────────────────────────────────────────────────
 

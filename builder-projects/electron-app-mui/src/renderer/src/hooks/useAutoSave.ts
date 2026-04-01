@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { AnyAppData, ProjectMeta, ResolvedSettings } from '../types'
 
 const AUTO_SAVE_DEBOUNCE_MS = 1000
@@ -15,7 +15,12 @@ export interface UseAutoSaveOptions {
  * Hook for managing auto-save behavior (interval and on-edit modes).
  * Extracted from ProjectPage to reduce component complexity.
  *
- * @returns Object with cleanup function for on-edit mode
+ * IMPORTANT: This hook ONLY handles auto-save timing.
+ * - It does NOT manage history state (call setPresent separately)
+ * - It does NOT manage dirty state (update isDirtyRef separately)
+ *
+ * The caller must update appDataRef and isDirtyRef BEFORE this hook's
+ * auto-save logic runs.
  */
 export function useAutoSave({
   metaRef,
@@ -23,9 +28,7 @@ export function useAutoSave({
   isDirtyRef,
   resolved,
   doSave
-}: UseAutoSaveOptions): {
-  handleAppDataChange: (newData: AnyAppData) => void
-} {
+}: UseAutoSaveOptions): void {
   const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -67,29 +70,42 @@ export function useAutoSave({
       }
     }
   }, [])
+}
 
-  // ── App data change handler ────────────────────────────────────────────────
-  const handleAppDataChange = useCallback(
-    (newData: AnyAppData) => {
-      appDataRef.current = newData
-      isDirtyRef.current = true
+/**
+ * Handler for app data changes that integrates with auto-save.
+ * Call this from your editor's onChange handler.
+ *
+ * @param newData - New app data from editor
+ * @param setPresent - Function to update history state
+ * @param options - Auto-save options from useAutoSave hook
+ */
+export function createAppDataChangeHandler(
+  newData: AnyAppData,
+  setPresent: (data: AnyAppData) => void,
+  appDataRef: React.MutableRefObject<AnyAppData>,
+  isDirtyRef: React.MutableRefObject<boolean>,
+  metaRef: React.MutableRefObject<ProjectMeta | null>,
+  doSave: (meta: ProjectMeta, appData: AnyAppData) => Promise<void>,
+  autoSaveMode: 'off' | 'on-edit' | 'interval',
+  onEditTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
+): void {
+  // Update history state
+  setPresent(newData)
+  
+  // Update refs
+  appDataRef.current = newData
+  isDirtyRef.current = true
 
-      // Auto-save on edit with debounce
-      if (resolved.autoSave.mode === 'on-edit') {
-        if (onEditTimerRef.current) clearTimeout(onEditTimerRef.current)
-        onEditTimerRef.current = setTimeout(() => {
-          if (metaRef.current) {
-            doSave(metaRef.current, newData).catch(() => {
-              // Silently fail - user will see dirty indicator
-            })
-          }
-        }, AUTO_SAVE_DEBOUNCE_MS)
+  // Auto-save on edit with debounce
+  if (autoSaveMode === 'on-edit') {
+    if (onEditTimerRef.current) clearTimeout(onEditTimerRef.current)
+    onEditTimerRef.current = setTimeout(() => {
+      if (metaRef.current) {
+        doSave(metaRef.current, newData).catch(() => {
+          // Silently fail - user will see dirty indicator
+        })
       }
-    },
-    [resolved.autoSave.mode, doSave, metaRef, appDataRef, isDirtyRef]
-  )
-
-  return {
-    handleAppDataChange
+    }, AUTO_SAVE_DEBOUNCE_MS)
   }
 }
