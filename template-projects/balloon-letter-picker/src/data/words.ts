@@ -12,47 +12,7 @@ const DEFAULT_WORDS: WordData[] = [
     word: 'RUN',
     imageUrl: './images/words/run.png',
     hint: 'He moves fast on his feet.'
-  },
-  /*{
-    word: 'SWIM',
-    imageUrl: './images/words/swim.png',
-    hint: 'He glides smoothly through the water.'
-  },
-  {
-    word: 'FLY',
-    imageUrl: './images/words/fly.png',
-    hint: 'The bird flaps its wings and moves through the air.'
-  },
-  {
-    word: 'EAT',
-    imageUrl: './images/words/eat.png',
-    hint: 'He is having a meal'
-  },
-  {
-    word: 'SLEEP',
-    imageUrl: './images/words/sleeping.png',
-    hint: 'He is taking a nap'
-  },
-  {
-    word: 'READ',
-    imageUrl: './images/words/reading.png',
-    hint: 'He looks at the pages and follows the words with his eyes.'
-  },
-  {
-    word: 'WRITE',
-    imageUrl: './images/words/write.png',
-    hint: 'He puts words down on paper using a pen'
-  },
-  {
-    word: 'SING',
-    imageUrl: './images/words/sing.png',
-    hint: 'He performs a song with her voice.'
-  },
-  {
-    word: 'DANCE',
-    imageUrl: './images/words/dance.png',
-    hint: 'They move their body rhythmically, following the beat of the music'
-  }*/
+  }
 ];
 
 export const BUBBLE_IMAGES = [

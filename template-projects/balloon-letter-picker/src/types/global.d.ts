@@ -5,10 +5,16 @@ export interface WordData {
   hint: string;
 }
 
+export interface SoundData {
+  pop: string;
+  complete: string;
+}
+
 declare global {
   interface Window {
     win: {
-      DATA: WordData[];
+      DATA?: WordData[];
+      SOUNDS?: SoundData;
     };
   }
 }

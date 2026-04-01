@@ -215,14 +215,21 @@ const useGameLogic = (canvasSize: { width: number; height: number }, bubbleSpeed
         currentProgress[targetIndex] = letter;
         const isWordComplete = currentProgress.join('') === currentWord;
         
+      console.log('🔍 onCorrectCallback.current:', !!onCorrectCallback.current);
+      console.log('🔍 onWordCompleteCallback.current:', !!onWordCompleteCallback.current);
+      console.log('✅ isWordComplete:', isWordComplete);
+
         if (onCorrectCallback.current) {
           onCorrectCallback.current(letter, isWordComplete);
         }
         
         if (isWordComplete) {
+          console.log('🎉 Word complete! Calling onWordComplete...');
           if (onWordCompleteCallback.current) {
             onWordCompleteCallback.current(currentWord);
-          }
+          } else {
+          console.log('❌ onWordCompleteCallback.current is NULL!');
+        }
           setTimeout(() => {
             goToNextWord();
           }, 1000);

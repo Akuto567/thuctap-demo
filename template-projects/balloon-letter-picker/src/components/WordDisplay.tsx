@@ -39,11 +39,11 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
   
   // Kích thước nhỏ hơn
   const containerPadding = isMobile ? '8px 12px' : '10px 16px';
-  const imageSize = isMobile ? 70 : isTablet ? 80 : 100;
+  const imageSize = isMobile ? 85 : isTablet ? 100 : 120;
   const letterBoxSize = isMobile ? 32 : isTablet ? 38 : 42;
   const letterFontSize = isMobile ? 18 : isTablet ? 22 : 26;
-  const hintFontSize = isMobile ? 11 : isTablet ? 13 : 14;
-  const hintPadding = isMobile ? '4px 10px' : '5px 14px';
+  const hintFontSize = isMobile ? 15 : isTablet ? 17 : 18;
+  const hintPadding = isMobile ? '8px 18px' : '9px 22px';
   const gap = isMobile ? 10 : 12;
   const flexDirection = isMobile ? 'column' : 'row';
   const scoreFontSize = isMobile ? 12 : 14;
