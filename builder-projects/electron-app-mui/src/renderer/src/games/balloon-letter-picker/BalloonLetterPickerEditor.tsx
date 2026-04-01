@@ -16,7 +16,6 @@ import {
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
-import { MyEditorProps } from '@renderer/types/editor'
 import { JSX, useCallback } from 'react'
 import {
   AtoZWordField,
@@ -30,71 +29,87 @@ import ImagePicker from '../../components/ImagePicker'
 import { BalloonLetterPickerAppData, BalloonWord } from '../../types'
 import { getExcelName } from '../../utils/stringUtils'
 
-interface Props extends MyEditorProps<BalloonLetterPickerAppData> {}
+interface Props {
+  appData: BalloonLetterPickerAppData
+  projectDir: string
+  onChange: (data: BalloonLetterPickerAppData) => void
+}
 
-export default function BalloonLetterPickerEditor({ form, projectDir }: Props): JSX.Element {
-  const data = form.state.values as BalloonLetterPickerAppData
+function normalize(d: BalloonLetterPickerAppData): BalloonLetterPickerAppData {
+  return { ...d, _wordCounter: d._wordCounter ?? 0, words: d.words ?? [] }
+}
+
+export default function BalloonLetterPickerEditor({
+  appData: raw,
+  projectDir,
+  onChange
+}: Props): JSX.Element {
+  const data = normalize(raw)
   const { resolved } = useSettings()
   const { words } = data
 
-  // ── CRUD Helpers ──────────────────────────────────────────────────────────
-  const nextWordId = useCallback(() => {
-    const c = (data._wordCounter ?? 0) + 1
-    return { id: `word-${c}`, counter: c }
-  }, [data._wordCounter])
-
+  // ── CRUD ──────────────────────────────────────────────────────────────────
   const addWord = useCallback(
     (initialImagePath?: string) => {
-      const { id, counter } = nextWordId()
+      const c = data._wordCounter + 1
       const w: BalloonWord = {
-        id,
-        word: resolved.prefillNames ? `WORD${getExcelName(counter)}` : '',
+        id: `word-${c}`,
+        word: resolved.prefillNames ? `WORD${getExcelName(c)}` : '',
         imagePath: initialImagePath ?? '',
         hint: ''
       }
-      form.setFieldValue('_wordCounter', counter)
-      form.insertListItem('words', w)
+      onChange({ ...data, _wordCounter: c, words: [...words, w] })
     },
-    [form, data, resolved.prefillNames, nextWordId]
+    [data, words, resolved.prefillNames, onChange]
   )
 
   const addWordFromDrop = useCallback(
     async (filePath: string) => {
-      const { id, counter } = nextWordId()
+      const c = data._wordCounter + 1
+      const id = `word-${c}`
       const relativePath = await window.electronAPI.importImage(filePath, projectDir, id)
       // Convert to the ./images/... style relative path the template expects
       const imagePath = `./${relativePath.replace(/\\/g, '/')}`
       const w: BalloonWord = {
         id,
-        word: resolved.prefillNames ? `WORD${getExcelName(counter)}` : '',
+        word: resolved.prefillNames ? `WORD${getExcelName(c)}` : '',
         imagePath,
         hint: ''
       }
-      form.setFieldValue('_wordCounter', counter)
-      form.insertListItem('words', w)
+      onChange({ ...data, _wordCounter: c, words: [...words, w] })
     },
-    [form, data, projectDir, resolved.prefillNames, nextWordId]
+    [data, words, projectDir, resolved.prefillNames, onChange]
+  )
+
+  const updateWord = useCallback(
+    (id: string, patch: Partial<BalloonWord>) => {
+      onChange({ ...data, words: words.map((w) => (w.id === id ? { ...w, ...patch } : w)) })
+    },
+    [data, words, onChange]
   )
 
   const deleteWord = useCallback(
-    (index: number) => {
-      form.removeListItem('words', index)
+    (id: string) => {
+      onChange({ ...data, words: words.filter((w) => w.id !== id) })
     },
-    [form]
+    [data, words, onChange]
   )
 
-  // ── Shortcuts ─────────────────────────────────────────────────────────────
+  // ── Image pick helper (for the inline ImagePicker inside each card) ────────
+  // The template stores imagePath as a relative string path (./images/words/foo.png)
+  // We handle it by surfacing ImagePicker but mapping its relativePath → imagePath field
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Only one unit (word), all tiers do the same
   useEntityCreateShortcut({
     onTier1: addWord
   })
 
   // ── Validation ────────────────────────────────────────────────────────────
-  const missingWordCount = words.filter((w) => !w.word.trim()).length
-  const invalidWordCount = words.filter(
-    (w) => w.word.trim() && !/^[A-Za-z]+$/.test(w.word.trim())
-  ).length
-  const missingHintCount = words.filter((w) => !w.hint.trim()).length
-  const hasIssues = missingWordCount > 0 || invalidWordCount > 0 || missingHintCount > 0
+  const missingWord = words.filter((w) => !w.word.trim())
+  const invalidWord = words.filter((w) => w.word.trim() && !/^[A-Za-z]+$/.test(w.word.trim()))
+  const missingHint = words.filter((w) => !w.hint.trim())
+  const hasIssues = missingWord.length > 0 || invalidWord.length > 0 || missingHint.length > 0
 
   return (
     <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -139,14 +154,14 @@ export default function BalloonLetterPickerEditor({ form, projectDir }: Props): 
           <SummaryRow label="Total words" value={words.length} />
           <SummaryRow label="With images" value={words.filter((w) => !!w.imagePath).length} />
           <SummaryRow label="With hints" value={words.filter((w) => !!w.hint.trim()).length} />
-          {missingWordCount > 0 && (
+          {missingWord.length > 0 && (
             <Typography variant="caption" color="error.main" sx={{ mt: 0.5 }}>
-              {missingWordCount} missing word text
+              {missingWord.length} missing word text
             </Typography>
           )}
-          {invalidWordCount > 0 && (
+          {invalidWord.length > 0 && (
             <Typography variant="caption" color="warning.main">
-              {invalidWordCount} contain non-letters
+              {invalidWord.length} contain non-letters
             </Typography>
           )}
         </Box>
@@ -157,9 +172,10 @@ export default function BalloonLetterPickerEditor({ form, projectDir }: Props): 
         <Collapse in={hasIssues}>
           <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
             {[
-              missingWordCount > 0 && `${missingWordCount} word(s) have no text`,
-              invalidWordCount > 0 && `${invalidWordCount} word(s) contain non-letter characters`,
-              missingHintCount > 0 && `${missingHintCount} word(s) are missing a hint`
+              missingWord.length > 0 && `${missingWord.length} word(s) have no text`,
+              invalidWord.length > 0 &&
+                `${invalidWord.length} word(s) contain non-letter characters`,
+              missingHint.length > 0 && `${missingHint.length} word(s) are missing a hint`
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -194,12 +210,12 @@ export default function BalloonLetterPickerEditor({ form, projectDir }: Props): 
             {words.map((w, idx) => (
               <WordCard
                 key={w.id}
-                form={form}
                 word={w}
                 index={idx}
                 projectDir={projectDir}
                 autoFocus={idx === words.length - 1}
-                onDelete={() => deleteWord(idx)}
+                onUpdate={updateWord}
+                onDelete={deleteWord}
               />
             ))}
           </Box>
@@ -226,24 +242,24 @@ function SummaryRow({ label, value }: { label: string; value: number }): JSX.Ele
 }
 
 function WordCard({
-  form,
   word,
   index,
   projectDir,
   autoFocus,
+  onUpdate,
   onDelete
 }: {
-  form: Props['form']
   word: BalloonWord
   index: number
   projectDir: string
   autoFocus?: boolean
-  onDelete: () => void
+  onUpdate: (id: string, p: Partial<BalloonWord>) => void
+  onDelete: (id: string) => void
 }): JSX.Element {
   const wordText = word.word.trim().toUpperCase()
   const isInvalid = wordText && !/^[A-Z]+$/.test(wordText)
-  const path = `words[${index}]`
 
+  // Derive relative path from imagePath for ImagePicker's value prop
   // imagePath is like './images/words/jump.png', relativePath is 'images/words/jump.png'
   const imageRelative = word.imagePath ? word.imagePath.replace(/^\.\//, '') : null
 
@@ -252,7 +268,7 @@ function WordCard({
       onFileDrop={async (fp) => {
         const rel = await window.electronAPI.importImage(fp, projectDir, word.id)
         const imagePath = rel ? `./${rel.replace(/\\/g, '/')}` : ''
-        form.setFieldValue(`${path}.imagePath`, imagePath)
+        onUpdate(word.id, { imagePath })
       }}
     >
       <Paper
@@ -272,61 +288,46 @@ function WordCard({
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
           <IndexBadge index={index} color="primary" />
 
-          <form.Field name={`${path}.imagePath`}>
-            {(field) => (
-              <ImagePicker
-                projectDir={projectDir}
-                desiredNamePrefix={word.id}
-                value={imageRelative}
-                onChange={(p) => {
-                  const imagePath = p ? `./${p.replace(/\\/g, '/')}` : ''
-                  field.handleChange(imagePath)
-                }}
-                label="Word image"
-                size={80}
-              />
-            )}
-          </form.Field>
+          <ImagePicker
+            projectDir={projectDir}
+            desiredNamePrefix={word.id}
+            value={imageRelative}
+            onChange={(p) => {
+              const imagePath = p ? `./${p.replace(/\\/g, '/')}` : ''
+              onUpdate(word.id, { imagePath })
+            }}
+            label="Word image"
+            size={80}
+          />
 
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <form.Field name={`${path}.word`}>
-              {(field) => (
-                <AtoZWordField
-                  label="Word (uppercase letters only)"
-                  value={field.state.value}
-                  onChange={(v) => field.handleChange(v)}
-                  onBlur={field.handleBlur}
-                  placeholder="e.g. JUMP"
-                  autoFocus={autoFocus}
-                />
-              )}
-            </form.Field>
+            <AtoZWordField
+              label="Word (uppercase letters only)"
+              value={word.word}
+              onChange={(v) => onUpdate(word.id, { word: v })}
+              placeholder="e.g. JUMP"
+              autoFocus={autoFocus}
+            />
 
-            <form.Field name={`${path}.hint`}>
-              {(field) => (
-                <TextField
-                  label="Hint"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="e.g. He pushes his body off the ground and rises into the air."
-                  size="small"
-                  multiline
-                  minRows={2}
-                  fullWidth
-                  error={!field.state.value.trim()}
-                  helperText={
-                    !field.state.value.trim() ? 'Required — helps students guess the word' : ''
-                  }
-                />
-              )}
-            </form.Field>
+            {/* Hint field */}
+            <TextField
+              label="Hint"
+              value={word.hint}
+              onChange={(e) => onUpdate(word.id, { hint: e.target.value })}
+              placeholder="e.g. He pushes his body off the ground and rises into the air."
+              size="small"
+              multiline
+              minRows={2}
+              fullWidth
+              error={!word.hint.trim()}
+              helperText={!word.hint.trim() ? 'Required — helps students guess the word' : ''}
+            />
           </Box>
 
           <Tooltip title="Delete word">
             <IconButton
               size="small"
-              onClick={onDelete}
+              onClick={() => onDelete(word.id)}
               sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
             >
               <DeleteIcon fontSize="small" />

@@ -33,9 +33,6 @@ import {
 import { useSettings } from '@renderer/hooks/useSettings'
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { deepEqual } from 'fast-equals'
-import { EditorWrapper } from '../components/EditorWrapper'
-import { EditorHandle } from '../types/editor'
 import SettingsPanel from '../components/SettingsPanel'
 import {
   getHistoryArray,
@@ -108,8 +105,6 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     canRedo
   } = useProjectHistory()
 
-  const editorRef = useRef<EditorHandle>(null)
-
   // Wrapped undo/redo that marks document as dirty
   const handleUndo = useCallback(() => {
     historyUndo()
@@ -120,17 +115,6 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     historyRedo()
     setIsDirty(true)
   }, [historyRedo])
-
-  // ── Sync history -> editor ────────────────────────────────────────────────
-  // When the history state changes (Undo/Redo), push it to the editor.
-  // We use structured equality to avoid infinite loops since the editor also pushes to history.
-  useEffect(() => {
-    if (!editorRef.current) return
-    const currentEditorValue = editorRef.current.getValue()
-    if (!deepEqual(currentEditorValue, appData)) {
-      editorRef.current.setValue(appData)
-    }
-  }, [appData])
 
   // Sync project settings to context
   useEffect(() => {
@@ -252,28 +236,11 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     }
   }, [])
 
-  // ── Synchronization ───────────────────────────────────────────────────────
-  /**
-   * Pulls the absolute latest "draft" data from the editor right now.
-   * Updates the history context so everything else is in sync.
-   */
-  const syncEditor = useCallback(() => {
-    if (!editorRef.current) return appData
-    const latest = editorRef.current.getValue()
-    if (!deepEqual(latest, appData)) {
-      setAppData(latest)
-    }
-    return latest
-  }, [appData, setAppData])
-
-  // ── App data change (from editor - debounced) ───────────────────────────
+  // ── App data change (from editor) ─────────────────────────────────────────
   const handleAppDataChange = useCallback(
     (newData: AnyAppData) => {
-      // Only record in history if it's actually different
-      if (!deepEqual(newData, appData)) {
-        setAppData(newData)
-        setIsDirty(true)
-      }
+      setAppData(newData)
+      setIsDirty(true)
 
       // Auto-save on edit with debounce
       if (resolved.autoSave.mode === 'on-edit') {
@@ -287,26 +254,24 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         }, AUTO_SAVE_DEBOUNCE_MS)
       }
     },
-    [appData, setAppData, resolved.autoSave.mode, doSave]
+    [setAppData, resolved.autoSave.mode, doSave]
   )
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!meta) return
     try {
-      const data = syncEditor()
-      await doSave(meta, data)
+      await doSave(meta, appData)
       showSnack('Project saved!')
     } catch (e) {
       showSnack(`Save failed: ${e}`, 'error')
     }
-  }, [meta, syncEditor, doSave, showSnack])
+  }, [meta, appData, doSave, showSnack])
 
   // ── Save As ───────────────────────────────────────────────────────────────
   const handleSaveAs = useCallback(async (): Promise<void> => {
     if (!meta) return
-    const data = syncEditor()
     const result = await window.electronAPI.saveProjectAs({
-      projectData: buildProjectFile(meta, data),
+      projectData: buildProjectFile(meta, appData),
       oldProjectDir: meta.projectDir
     })
     if (!result) return
@@ -318,17 +283,16 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
       }
     }
     await performSaveAs(result.folder)
-  }, [meta, syncEditor, showSnack, performSaveAs])
+  }, [meta, appData, showSnack, performSaveAs])
 
   // ── Export / Preview ───────────────────────────────────────────────────────
   const handleExport = async (mode: 'folder' | 'zip'): Promise<void> => {
     setExportAnchor(null)
     if (!meta) return
     try {
-      const data = syncEditor()
       const result = await window.electronAPI.exportProject({
         templateId: meta.templateId,
-        appData: data,
+        appData: appData,
         projectDir: meta.projectDir,
         mode
       })
@@ -342,10 +306,9 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const handlePreview = async (): Promise<void> => {
     if (!meta) return
     try {
-      const data = syncEditor()
       await window.electronAPI.previewProject({
         templateId: meta.templateId,
-        appData: data,
+        appData: appData,
         projectDir: meta.projectDir
       })
       showSnack('Preview opened')
@@ -547,13 +510,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
             )
           const { Editor } = entry
           return (
-            <EditorWrapper
-              ref={editorRef}
-              Component={Editor}
-              initialData={appData}
-              projectDir={meta.projectDir}
-              onChange={handleAppDataChange}
-            />
+            <Editor appData={appData} projectDir={meta.projectDir} onChange={handleAppDataChange} />
           )
         })()}
       </Box>

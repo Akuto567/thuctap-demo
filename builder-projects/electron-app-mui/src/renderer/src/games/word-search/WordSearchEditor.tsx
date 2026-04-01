@@ -5,8 +5,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import { Alert, Box, Button, Collapse, IconButton, Paper, Tooltip, Typography } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
-import { MyEditorProps } from '@renderer/types/editor'
-import { JSX, useCallback, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   AtoZWordField,
   EmptyState,
@@ -19,18 +18,30 @@ import ImagePicker from '../../components/ImagePicker'
 import { WordSearchAppData, WordSearchItem } from '../../types'
 import { getExcelName } from '../../utils/stringUtils'
 
-interface Props extends MyEditorProps<WordSearchAppData> {}
+interface Props {
+  appData: WordSearchAppData
+  projectDir: string
+  onChange: (data: WordSearchAppData) => void
+}
 
 type Tab = 'words' | 'settings'
 
-export default function WordSearchEditor({ form, projectDir }: Props): JSX.Element {
-  const data = form.state.values as WordSearchAppData
+function normalize(d: WordSearchAppData): WordSearchAppData {
+  return { ...d, _itemCounter: d._itemCounter ?? 0, items: d.items ?? [] }
+}
+
+export default function WordSearchEditor({
+  appData: raw,
+  projectDir,
+  onChange
+}: Props): React.JSX.Element {
+  const data = normalize(raw)
   const [tab, setTab] = useState<Tab>('words')
   const { resolved } = useSettings()
   const { items } = data
 
   const nextItemId = useCallback(() => {
-    const c = (data._itemCounter ?? 0) + 1
+    const c = data._itemCounter + 1
     return { id: `item-${c}`, counter: c }
   }, [data._itemCounter])
 
@@ -42,10 +53,9 @@ export default function WordSearchEditor({ form, projectDir }: Props): JSX.Eleme
         word: resolved.prefillNames ? `WORD${getExcelName(counter)}` : '',
         imagePath: initialImage ?? null
       }
-      form.setFieldValue('_itemCounter', counter)
-      form.insertListItem('items', i)
+      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [form, data, resolved.prefillNames, nextItemId]
+    [data, items, resolved.prefillNames, onChange, nextItemId]
   )
 
   const addItemFromDrop = useCallback(
@@ -57,17 +67,23 @@ export default function WordSearchEditor({ form, projectDir }: Props): JSX.Eleme
         word: resolved.prefillNames ? `WORD${getExcelName(counter)}` : '',
         imagePath
       }
-      form.setFieldValue('_itemCounter', counter)
-      form.insertListItem('items', i)
+      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [form, data, projectDir, resolved.prefillNames, nextItemId]
+    [data, items, projectDir, resolved.prefillNames, onChange, nextItemId]
+  )
+
+  const updateItem = useCallback(
+    (id: string, patch: Partial<WordSearchItem>) => {
+      onChange({ ...data, items: items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })
+    },
+    [data, items, onChange]
   )
 
   const deleteItem = useCallback(
-    (index: number) => {
-      form.removeListItem('items', index)
+    (id: string) => {
+      onChange({ ...data, items: items.filter((i) => i.id !== id) })
     },
-    [form]
+    [data, items, onChange]
   )
 
   useEntityCreateShortcut({
@@ -75,9 +91,9 @@ export default function WordSearchEditor({ form, projectDir }: Props): JSX.Eleme
   })
 
   // Basic validation
-  const unnamedCount = items.filter((i) => !i.word.trim()).length
-  const invalidCount = items.filter((i) => i.word.trim() && !/^[A-Z]+$/.test(i.word.trim())).length
-  const hasIssues = unnamedCount > 0 || invalidCount > 0
+  const unnamedI = items.filter((i) => !i.word.trim())
+  const invalidI = items.filter((i) => i.word.trim() && !/^[A-Z]+$/.test(i.word.trim()))
+  const hasIssues = unnamedI.length > 0 || invalidI.length > 0
 
   return (
     <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -124,8 +140,8 @@ export default function WordSearchEditor({ form, projectDir }: Props): JSX.Eleme
         <Collapse in={hasIssues}>
           <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
             {[
-              unnamedCount > 0 && `${unnamedCount} item(s) missing a word`,
-              invalidCount > 0 && `${invalidCount} item(s) with invalid characters (A-Z only)`
+              unnamedI.length > 0 && `${unnamedI.length} item(s) missing a word`,
+              invalidI.length > 0 && `${invalidI.length} item(s) with invalid characters (A-Z only)`
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -134,35 +150,37 @@ export default function WordSearchEditor({ form, projectDir }: Props): JSX.Eleme
 
         {tab === 'words' && (
           <WordsTab
-            form={form}
             items={items}
             projectDir={projectDir}
             onAdd={addItem}
             onAddFromDrop={addItemFromDrop}
+            onUpdate={updateItem}
             onDelete={deleteItem}
           />
         )}
-        {tab === 'settings' && <SettingsTab form={form} projectDir={projectDir} />}
+        {tab === 'settings' && (
+          <SettingsTab data={data} projectDir={projectDir} onChange={onChange} />
+        )}
       </Box>
     </Box>
   )
 }
 
 function WordsTab({
-  form,
   items,
   projectDir,
   onAdd,
   onAddFromDrop,
+  onUpdate,
   onDelete
 }: {
-  form: Props['form']
   items: WordSearchItem[]
   projectDir: string
   onAdd: () => void
   onAddFromDrop: (fp: string) => void
-  onDelete: (idx: number) => void
-}): JSX.Element {
+  onUpdate: (id: string, p: Partial<WordSearchItem>) => void
+  onDelete: (id: string) => void
+}): React.JSX.Element {
   return (
     <Box>
       <StickyHeader
@@ -192,11 +210,11 @@ function WordsTab({
           {items.map((item, idx) => (
             <WordCard
               key={item.id}
-              form={form}
               item={item}
               index={idx}
               projectDir={projectDir}
-              onDelete={() => onDelete(idx)}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
               autoFocus={idx === items.length - 1}
             />
           ))}
@@ -207,27 +225,25 @@ function WordsTab({
 }
 
 function WordCard({
-  form,
   item,
   index,
   projectDir,
+  onUpdate,
   onDelete,
   autoFocus
 }: {
-  form: Props['form']
   item: WordSearchItem
   index: number
   projectDir: string
   autoFocus?: boolean
-  onDelete: () => void
-}): JSX.Element {
-  const path = `items[${index}]`
-
+  onUpdate: (id: string, p: Partial<WordSearchItem>) => void
+  onDelete: (id: string) => void
+}): React.JSX.Element {
   return (
     <FileDropTarget
       onFileDrop={async (fp) => {
         const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
-        form.setFieldValue(`${path}.imagePath`, rel)
+        onUpdate(item.id, { imagePath: rel })
       }}
     >
       <Paper
@@ -245,37 +261,25 @@ function WordCard({
         }}
       >
         <IndexBadge index={index} color="primary" />
-
-        <form.Field name={`${path}.imagePath`}>
-          {(field) => (
-            <ImagePicker
-              projectDir={projectDir}
-              desiredNamePrefix={item.id}
-              value={field.state.value}
-              onChange={(p) => field.handleChange(p)}
-              label="Image"
-              size={72}
-            />
-          )}
-        </form.Field>
-
-        <form.Field name={`${path}.word`}>
-          {(field) => (
-            <AtoZWordField
-              label="Word"
-              value={field.state.value}
-              onChange={(v) => field.handleChange(v)}
-              onBlur={field.handleBlur}
-              placeholder="e.g. APPLE, DOG…"
-              autoFocus={autoFocus}
-            />
-          )}
-        </form.Field>
-
+        <ImagePicker
+          projectDir={projectDir}
+          desiredNamePrefix={item.id}
+          value={item.imagePath}
+          onChange={(p) => onUpdate(item.id, { imagePath: p })}
+          label="Image"
+          size={72}
+        />
+        <AtoZWordField
+          label="Word"
+          value={item.word}
+          onChange={(v) => onUpdate(item.id, { word: v })}
+          placeholder="e.g. APPLE, DOG…"
+          autoFocus={autoFocus}
+        />
         <Tooltip title="Delete word">
           <IconButton
             size="small"
-            onClick={onDelete}
+            onClick={() => onDelete(item.id)}
             sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
           >
             <DeleteIcon fontSize="small" />
@@ -287,12 +291,14 @@ function WordCard({
 }
 
 function SettingsTab({
-  form,
-  projectDir
+  data,
+  projectDir,
+  onChange
 }: {
-  form: Props['form']
+  data: WordSearchAppData
   projectDir: string
-}): JSX.Element {
+  onChange: (d: WordSearchAppData) => void
+}): React.JSX.Element {
   return (
     <Box>
       <StickyHeader
@@ -312,18 +318,14 @@ function SettingsTab({
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Game Background Image
               </Typography>
-              <form.Field name="backgroundImagePath">
-                {(field) => (
-                  <ImagePicker
-                    projectDir={projectDir}
-                    desiredNamePrefix="global-background"
-                    value={field.state.value ?? null}
-                    onChange={(p) => field.handleChange(p)}
-                    label="Select Background"
-                    size={160}
-                  />
-                )}
-              </form.Field>
+              <ImagePicker
+                projectDir={projectDir}
+                desiredNamePrefix="global-background"
+                value={data.backgroundImagePath ?? null}
+                onChange={(p) => onChange({ ...data, backgroundImagePath: p })}
+                label="Select Background"
+                size={160}
+              />
             </Box>
           </Box>
         </Paper>

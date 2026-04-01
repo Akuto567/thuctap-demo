@@ -12,7 +12,6 @@
 import type { ComponentType } from 'react'
 import type { AnyAppData } from '../types'
 
-import { MyEditorForm } from '@renderer/types/editor'
 import BalloonLetterPickerEditor from './balloon-letter-picker/BalloonLetterPickerEditor'
 import GroupSortEditor from './group-sort/GroupSortEditor'
 import PairMatchingEditor from './pair-matching/PairMatchingEditor'
@@ -23,8 +22,9 @@ import WordSearchEditor from './word-search/WordSearchEditor'
 export interface GameRegistryEntry {
   /** Editor component rendered on the ProjectPage */
   Editor: ComponentType<{
-    form: MyEditorForm<AnyAppData>
+    appData: AnyAppData
     projectDir: string
+    onChange: (data: AnyAppData) => void
   }>
   /** Returns a fresh, empty appData object for new projects */
   createInitialData: () => AnyAppData

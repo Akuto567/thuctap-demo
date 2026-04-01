@@ -16,7 +16,6 @@ import {
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
-import { MyEditorProps } from '@renderer/types/editor'
 import { JSX, useCallback, useState } from 'react'
 import {
   EmptyState,
@@ -29,19 +28,30 @@ import {
 import ImagePicker from '../../components/ImagePicker'
 import { PairMatchingAppData, PairMatchingItem } from '../../types'
 
-interface Props extends MyEditorProps<PairMatchingAppData> {}
+interface Props {
+  appData: PairMatchingAppData
+  projectDir: string
+  onChange: (data: PairMatchingAppData) => void
+}
 
 type Tab = 'pairs' | 'settings'
 
-export default function PairMatchingEditor({ form, projectDir }: Props): JSX.Element {
-  const data = form.state.values as PairMatchingAppData
+function normalize(d: PairMatchingAppData): PairMatchingAppData {
+  return { ...d, _itemCounter: d._itemCounter ?? 0, items: d.items ?? [] }
+}
+
+export default function PairMatchingEditor({
+  appData: raw,
+  projectDir,
+  onChange
+}: Props): JSX.Element {
+  const data = normalize(raw)
   const [tab, setTab] = useState<Tab>('pairs')
   const { resolved } = useSettings()
   const { items } = data
 
-  // ── CRUD Helpers ──────────────────────────────────────────────────────────
   const nextItemId = useCallback(() => {
-    const c = (data._itemCounter ?? 0) + 1
+    const c = data._itemCounter + 1
     return { id: `item-${c}`, counter: c }
   }, [data._itemCounter])
 
@@ -54,10 +64,9 @@ export default function PairMatchingEditor({ form, projectDir }: Props): JSX.Ele
         imagePath: initialImage ?? null,
         minPairs: 1
       }
-      form.setFieldValue('_itemCounter', counter)
-      form.insertListItem('items', i)
+      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [form, data, resolved.prefillNames, nextItemId]
+    [data, items, resolved.prefillNames, onChange, nextItemId]
   )
 
   const addItemFromDrop = useCallback(
@@ -67,30 +76,33 @@ export default function PairMatchingEditor({ form, projectDir }: Props): JSX.Ele
       const i: PairMatchingItem = {
         id,
         keyword: resolved.prefillNames ? `Pair ${counter}` : '',
-        imagePath,
-        minPairs: 1
+        imagePath
       }
-      form.setFieldValue('_itemCounter', counter)
-      form.insertListItem('items', i)
+      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [form, data, projectDir, resolved.prefillNames, nextItemId]
+    [data, items, projectDir, resolved.prefillNames, onChange, nextItemId]
+  )
+
+  const updateItem = useCallback(
+    (id: string, patch: Partial<PairMatchingItem>) => {
+      onChange({ ...data, items: items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })
+    },
+    [data, items, onChange]
   )
 
   const deleteItem = useCallback(
-    (index: number) => {
-      form.removeListItem('items', index)
+    (id: string) => {
+      onChange({ ...data, items: items.filter((i) => i.id !== id) })
     },
-    [form]
+    [data, items, onChange]
   )
 
-  // ── Shortcuts ─────────────────────────────────────────────────────────────
   useEntityCreateShortcut({
     onTier1: addItem
   })
 
-  // ── Validation ────────────────────────────────────────────────────────────
-  const unnamedCount = items.filter((i) => !i.keyword.trim()).length
-  const hasIssues = unnamedCount > 0
+  const unnamedI = items.filter((i) => !i.keyword.trim())
+  const hasIssues = unnamedI.length > 0
 
   return (
     <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -120,7 +132,7 @@ export default function PairMatchingEditor({ form, projectDir }: Props): JSX.Ele
           icon={<CollectionsIcon fontSize="small" />}
           label="Pairs"
           badge={items.length}
-          badgeColor={unnamedCount > 0 ? 'error' : 'default'}
+          badgeColor={unnamedI.length > 0 ? 'error' : 'default'}
         />
         <SidebarTab
           active={tab === 'settings'}
@@ -136,40 +148,42 @@ export default function PairMatchingEditor({ form, projectDir }: Props): JSX.Ele
       <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
         <Collapse in={hasIssues}>
           <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
-            {unnamedCount > 0 && `${unnamedCount} pair(s) missing a keyword`}
+            {unnamedI.length > 0 && `${unnamedI.length} pair(s) missing a keyword`}
           </Alert>
         </Collapse>
 
         {tab === 'pairs' && (
           <PairsTab
-            form={form}
             items={items}
             projectDir={projectDir}
             onAdd={addItem}
             onAddFromDrop={addItemFromDrop}
+            onUpdate={updateItem}
             onDelete={deleteItem}
           />
         )}
-        {tab === 'settings' && <SettingsTab form={form} projectDir={projectDir} />}
+        {tab === 'settings' && (
+          <SettingsTab data={data} projectDir={projectDir} onChange={onChange} />
+        )}
       </Box>
     </Box>
   )
 }
 
 function PairsTab({
-  form,
   items,
   projectDir,
   onAdd,
   onAddFromDrop,
+  onUpdate,
   onDelete
 }: {
-  form: Props['form']
   items: PairMatchingItem[]
   projectDir: string
   onAdd: () => void
   onAddFromDrop: (fp: string) => void
-  onDelete: (idx: number) => void
+  onUpdate: (id: string, p: Partial<PairMatchingItem>) => void
+  onDelete: (id: string) => void
 }): JSX.Element {
   return (
     <Box>
@@ -200,11 +214,11 @@ function PairsTab({
           {items.map((item, idx) => (
             <PairCard
               key={item.id}
-              form={form}
               item={item}
               index={idx}
               projectDir={projectDir}
-              onDelete={() => onDelete(idx)}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
               autoFocus={idx === items.length - 1}
             />
           ))}
@@ -215,27 +229,25 @@ function PairsTab({
 }
 
 function PairCard({
-  form,
   item,
   index,
   projectDir,
+  onUpdate,
   onDelete,
   autoFocus
 }: {
-  form: Props['form']
   item: PairMatchingItem
   index: number
   projectDir: string
   autoFocus?: boolean
-  onDelete: () => void
+  onUpdate: (id: string, p: Partial<PairMatchingItem>) => void
+  onDelete: (id: string) => void
 }): JSX.Element {
-  const path = `items[${index}]`
-
   return (
     <FileDropTarget
       onFileDrop={async (fp) => {
         const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
-        form.setFieldValue(`${path}.imagePath`, rel)
+        onUpdate(item.id, { imagePath: rel })
       }}
     >
       <Paper
@@ -253,54 +265,37 @@ function PairCard({
         }}
       >
         <IndexBadge index={index} color="primary" />
-
-        <form.Field name={`${path}.imagePath`}>
-          {(field) => (
-            <ImagePicker
-              projectDir={projectDir}
-              desiredNamePrefix={item.id}
-              value={field.state.value}
-              onChange={(p) => field.handleChange(p)}
-              label="Image"
-              size={72}
-            />
-          )}
-        </form.Field>
-
-        <form.Field name={`${path}.keyword`}>
-          {(field) => (
-            <NameField
-              label="Keyword"
-              value={field.state.value}
-              onChange={(v) => field.handleChange(v)}
-              onBlur={field.handleBlur}
-              placeholder="e.g. Apple, Dog…"
-              autoFocus={autoFocus}
-            />
-          )}
-        </form.Field>
-
-        <form.Field name={`${path}.minPairs`}>
-          {(field) => (
-            <TextField
-              label="Min Pairs"
-              type="number"
-              size="small"
-              value={field.state.value ?? ''}
-              onChange={(e) =>
-                field.handleChange(e.target.value === '' ? null : Number(e.target.value))
-              }
-              onBlur={field.handleBlur}
-              sx={{ width: 100 }}
-              placeholder="Default"
-            />
-          )}
-        </form.Field>
-
+        <ImagePicker
+          projectDir={projectDir}
+          desiredNamePrefix={item.id}
+          value={item.imagePath}
+          onChange={(p) => onUpdate(item.id, { imagePath: p })}
+          label="Image"
+          size={72}
+        />
+        <NameField
+          label="Keyword"
+          value={item.keyword}
+          onChange={(v) => onUpdate(item.id, { keyword: v })}
+          placeholder="e.g. Apple, Dog…"
+          autoFocus={autoFocus}
+        />
+        <TextField
+          label="Min Pairs"
+          type="number"
+          size="small"
+          value={item.minPairs ?? ''}
+          onChange={(e) => {
+            const val = e.target.value === '' ? null : Number(e.target.value)
+            onUpdate(item.id, { minPairs: val })
+          }}
+          sx={{ width: 100 }}
+          placeholder="Default"
+        />
         <Tooltip title="Delete pair">
           <IconButton
             size="small"
-            onClick={onDelete}
+            onClick={() => onDelete(item.id)}
             sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
           >
             <DeleteIcon fontSize="small" />
@@ -312,11 +307,13 @@ function PairCard({
 }
 
 function SettingsTab({
-  form,
-  projectDir
+  data,
+  projectDir,
+  onChange
 }: {
-  form: Props['form']
+  data: PairMatchingAppData
   projectDir: string
+  onChange: (d: PairMatchingAppData) => void
 }): JSX.Element {
   return (
     <Box>
@@ -332,23 +329,19 @@ function SettingsTab({
           <Typography variant="subtitle2" sx={{ mb: 2 }}>
             Game Rules
           </Typography>
-          <form.Field name="minTotalPairs">
-            {(field) => (
-              <TextField
-                label="Minimum Total Pairs"
-                type="number"
-                size="small"
-                value={field.state.value ?? ''}
-                onChange={(e) =>
-                  field.handleChange(e.target.value === '' ? null : Number(e.target.value))
-                }
-                onBlur={field.handleBlur}
-                fullWidth
-                placeholder="No minimum (empty)"
-                helperText="Globally ensure this many pairs appear in the game. Leave empty for default."
-              />
-            )}
-          </form.Field>
+          <TextField
+            label="Minimum Total Pairs"
+            type="number"
+            size="small"
+            value={data.minTotalPairs ?? ''}
+            onChange={(e) => {
+              const val = e.target.value === '' ? null : Number(e.target.value)
+              onChange({ ...data, minTotalPairs: val })
+            }}
+            fullWidth
+            placeholder="No minimum (empty)"
+            helperText="Globally ensure this many pairs appear in the game. Leave empty for default."
+          />
         </Paper>
 
         <Paper
@@ -360,39 +353,30 @@ function SettingsTab({
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
             <Box sx={{ flex: 1 }}>
-              <form.Field name="cardBackColor">
-                {(field) => (
-                  <TextField
-                    label="Card Back Color"
-                    size="small"
-                    value={field.state.value ?? ''}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    fullWidth
-                    placeholder="e.g. #FF0000 or red"
-                    helperText="Color used for the back of cards if no image is provided."
-                    sx={{ mb: 2 }}
-                  />
-                )}
-              </form.Field>
+              <TextField
+                label="Card Back Color"
+                size="small"
+                value={data.cardBackColor ?? ''}
+                onChange={(e) => onChange({ ...data, cardBackColor: e.target.value })}
+                fullWidth
+                placeholder="e.g. #FF0000 or red"
+                helperText="Color used for the back of cards if no image is provided."
+                sx={{ mb: 2 }}
+              />
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Card Back Image
               </Typography>
-              <form.Field name="cardBackImage">
-                {(field) => (
-                  <ImagePicker
-                    projectDir={projectDir}
-                    desiredNamePrefix="global-card-back"
-                    value={field.state.value ?? null}
-                    onChange={(p) => field.handleChange(p)}
-                    label="Select Background"
-                    size={100}
-                  />
-                )}
-              </form.Field>
+              <ImagePicker
+                projectDir={projectDir}
+                desiredNamePrefix="global-card-back"
+                value={data.cardBackImage ?? null}
+                onChange={(p) => onChange({ ...data, cardBackImage: p })}
+                label="Select Background"
+                size={100}
+              />
             </Box>
           </Box>
         </Paper>
