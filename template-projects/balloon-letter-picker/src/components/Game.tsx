@@ -210,7 +210,7 @@ const playCompleteSound = () => {
   const loadEffectImages = async () => {
     const explodeImg = new Image();
     // Sửa đường dẫn: thêm dấu . để tương đối
-    explodeImg.src = './images/effects/explode.png';
+    explodeImg.src = './assets/images/effects/explode.png';
     explodeImg.onload = () => setExplodeImage(explodeImg);
     explodeImg.onerror = () => {
       console.log('Không tải được explode.png, dùng hình mặc định');
@@ -234,7 +234,7 @@ const playCompleteSound = () => {
     };
     
     const chippyImg = new Image();
-    chippyImg.src = './images/characters/chippy.png';
+    chippyImg.src = './assets/images/characters/chippy.png';
     chippyImg.onload = () => setChippyImage(chippyImg);
     chippyImg.onerror = () => {
       console.log('Không tải được chippy.png, dùng hình mặc định');

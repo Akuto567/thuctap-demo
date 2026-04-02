@@ -7,9 +7,9 @@ export interface SoundData {
 
 // Dữ liệu âm thanh mặc định (luôn dùng cái này, không cần window.win)
 const DEFAULT_SOUNDS: SoundData = {
-  pop: './sounds/pop.mp3',
-  complete: './sounds/complete.mp3',
-  correct: './sounds/true.mp3'
+  pop: './assets/sounds/pop.mp3',
+  complete: './assets/sounds/complete.mp3',
+  correct: './assets/sounds/true.mp3'
 };
 
 // Export trực tiếp, không cần getSounds

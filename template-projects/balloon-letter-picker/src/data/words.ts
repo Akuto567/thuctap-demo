@@ -5,21 +5,21 @@ import type { WordData } from '../types/game.types';
 const DEFAULT_WORDS: WordData[] = [
   {
     word: 'JUMP',
-    imageUrl: './images/words/jump.png',
+    imageUrl: './assets/images/words/jump.png',
     hint: 'He pushes his body off the ground and rises into the air.'
   },
   {
     word: 'RUN',
-    imageUrl: './images/words/run.png',
+    imageUrl: './assets/images/words/run.png',
     hint: 'He moves fast on his feet.'
   }
 ];
 
 export const BUBBLE_IMAGES = [
-  './images/bubbles/bubble_red.png',
-  './images/bubbles/bubble_blue.png',
-  './images/bubbles/bubble_pink.png',
-  './images/bubbles/bubble_yellow.png',
+  './assets/images/bubbles/bubble_red.png',
+  './assets/images/bubbles/bubble_blue.png',
+  './assets/images/bubbles/bubble_pink.png',
+  './assets/images/bubbles/bubble_yellow.png',
 ];
 
 // Hàm lấy dữ liệu từ window.win.DATA

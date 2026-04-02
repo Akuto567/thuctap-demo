@@ -577,16 +577,16 @@ const Game: React.FC = () => {
 
   // Load images
   useEffect(() => {
-    backgroundImage.current.src = './images/background.jpg';
-    playerImage.current.src = './images/plane.png';
-    cloudImage.current.src = './images/cloud.png';
-    tickImage.current.src = './images/tick.png';
-    crossImage.current.src = './images/cross.png';
-    explosionImage.current.src = './images/explosion.png';
+    backgroundImage.current.src = './assets/images/background.jpg';
+    playerImage.current.src = './assets/images/plane.png';
+    cloudImage.current.src = './assets/images/cloud.png';
+    tickImage.current.src = './assets/images/tick.png';
+    crossImage.current.src = './assets/images/cross.png';
+    explosionImage.current.src = './assets/images/explosion.png';
 
-    correctSoundRef.current = new Audio('./sounds/true.mp3');
-    wrongSoundRef.current = new Audio('./sounds/wrong.mp3');
-    completeSoundRef.current = new Audio('/sounds/complete.mp3');
+    correctSoundRef.current = new Audio('./assets/sounds/true.mp3');
+    wrongSoundRef.current = new Audio('./assets/sounds/wrong.mp3');
+    completeSoundRef.current = new Audio('./assets/sounds/complete.mp3');
     correctSoundRef.current.load();
     wrongSoundRef.current.load();
     completeSoundRef.current.load();
