@@ -8,10 +8,10 @@ import type { StageResult } from './types'
 const MASCOT_TRAVEL_MS = 900
 const COIN_RAIN_MS = 5000
 const coinImages = [
-  '/images/coin1.svg',
-  '/images/coin2.svg',
-  '/images/coin3.svg',
-  '/images/coin4.svg',
+  '/assets/images/coin1.svg',
+  '/assets/images/coin2.svg',
+  '/assets/images/coin3.svg',
+  '/assets/images/coin4.svg',
 ]
 const ANSWER_SOUND_PATHS = {
   correct: '/assets/sounds/correct.mp3',

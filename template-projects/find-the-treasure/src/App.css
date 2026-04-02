@@ -5,7 +5,7 @@
   overflow-x: clip;
   background-image:
     linear-gradient(rgba(246, 237, 210, 0.58), rgba(212, 234, 240, 0.72)),
-    url('/images/background.svg');
+    url('/assets/images/background.svg');
   background-size: cover, cover;
   background-position: center top, center top;
   background-repeat: no-repeat, no-repeat;
@@ -243,16 +243,18 @@
   height: clamp(470px, calc(100dvh - 210px), 660px);
   width: 80%;
   overflow: visible;
+  pointer-events: none;
+  transform: translateX(-58px);
   z-index: 0;
 }
 
 .route-line path {
   fill: none;
   stroke: rgba(204, 59, 33, 0.78);
-  stroke-width: 4;
+  stroke-width: 4.5;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 9 8;
+  stroke-dasharray: 10 10;
 }
 
 .treasure-marker {
@@ -412,8 +414,8 @@
 }
 
 .mascot img {
-  width: clamp(76px, 10vw, 140px);
-  height: clamp(76px, 10vw, 140px);
+  width: clamp(76px, 8vw, 96px);
+  height: clamp(76px, 8vw, 96px);
   object-fit: contain;
   filter: drop-shadow(0 12px 20px rgba(24, 72, 82, 0.28));
 }

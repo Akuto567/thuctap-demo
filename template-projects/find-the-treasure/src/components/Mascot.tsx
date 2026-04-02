@@ -1,6 +1,6 @@
 import type { MascotMood } from '../types'
 
-const mascotImage = 'assets/images/Chicky.png'
+const mascotImage = '/assets/images/Chicky.png'
 
 type MascotProps = {
   position: {

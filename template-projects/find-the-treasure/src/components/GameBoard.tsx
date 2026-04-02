@@ -3,17 +3,18 @@ import type { MascotMood, Stage, StageResult } from '../types'
 import { Mascot } from './Mascot'
 
 const islandImages = [
-  'assets/images/island_1.svg',
-  'assets/images/island_2.svg',
-  'assets/images/island_3.svg',
-  'assets/images/island_4.svg',
-  'assets/images/island_5.svg',
+  '/assets/images/island_1.svg',
+  '/assets/images/island_2.svg',
+  '/assets/images/island_3.svg',
+  '/assets/images/island_4.svg',
+  '/assets/images/island_5.svg',
 ]
-const moneyChest = 'assets/images/moneychest.svg'
+const moneyChest = '/assets/images/moneychest.svg'
 const ISLAND_NODE_WIDTH = 122
 const ISLAND_ART_SIZE = 70
-const ISLAND_ROUTE_OFFSET = 33
 const ISLAND_HORIZONTAL_SHIFT = 50
+const ISLAND_ROUTE_EDGE_OFFSET = ISLAND_ART_SIZE / 2 - 4
+const TREASURE_ROUTE_EDGE_OFFSET = 38
 const STAGES_PER_PAGE = 5
 const MAP_WIDTH = 940
 const MAP_HEIGHT = 430
@@ -22,6 +23,7 @@ const MAP_TOP_PADDING = ISLAND_ART_SIZE / 2 + 12
 const MAP_BOTTOM_PADDING = ISLAND_ART_SIZE / 2 + 12
 const MIN_STAGE_CENTER_GAP = ISLAND_NODE_WIDTH + 8
 const ROUTE_LANES = [MAP_TOP_PADDING, MAP_HEIGHT / 2, MAP_HEIGHT - MAP_BOTTOM_PADDING]
+const ROUTE_CURVE_RATIO = 0.34
 const MAX_HORIZONTAL_JITTER = 14
 const MAX_VERTICAL_JITTER = 10
 const LANE_PATTERNS = [
@@ -62,39 +64,38 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
-function createRouteControlPoints(startPoint: RoutePoint, endPoint: RoutePoint) {
-  const deltaX = endPoint.left - startPoint.left
-  const deltaY = endPoint.top - startPoint.top
-  const leadOffset = 0.38
-  const tailOffset = 0.62
-  const verticalLead = clamp(deltaY * 0.18, -26, 26)
-
-  return {
-    controlPointOne: {
-      left: startPoint.left + deltaX * leadOffset,
-      top: startPoint.top + verticalLead,
-    },
-    controlPointTwo: {
-      left: startPoint.left + deltaX * tailOffset,
-      top: endPoint.top - verticalLead,
-    },
-  }
-}
-
-function createSegmentEndpoints(
+function createEdgeAnchors(
   startPoint: RoutePoint,
   endPoint: RoutePoint,
-  startOffset = ISLAND_ROUTE_OFFSET,
-  endOffset = ISLAND_ROUTE_OFFSET,
+  startOffset = ISLAND_ROUTE_EDGE_OFFSET,
+  endOffset = ISLAND_ROUTE_EDGE_OFFSET,
 ) {
+  const deltaX = endPoint.left - startPoint.left
+  const deltaY = endPoint.top - startPoint.top
+  const distance = Math.hypot(deltaX, deltaY)
+
+  if (distance === 0) {
+    return {
+      startAnchor: startPoint,
+      endAnchor: endPoint,
+    }
+  }
+
+  const usableDistance = Math.max(distance - 8, 0)
+  const scale = Math.min(1, usableDistance / (startOffset + endOffset))
+  const startShift = startOffset * scale
+  const endShift = endOffset * scale
+  const unitX = deltaX / distance
+  const unitY = deltaY / distance
+
   return {
     startAnchor: {
-      left: startPoint.left + startOffset,
-      top: startPoint.top,
+      left: startPoint.left + unitX * startShift,
+      top: startPoint.top + unitY * startShift,
     },
     endAnchor: {
-      left: endPoint.left - endOffset,
-      top: endPoint.top,
+      left: endPoint.left - unitX * endShift,
+      top: endPoint.top - unitY * endShift,
     },
   }
 }
@@ -146,44 +147,54 @@ function createOrderedIslandPoints(stageCount: number, random: () => number) {
   return points
 }
 
-function createSegmentPath(
+function createRouteSegmentPath(
   startPoint: RoutePoint,
   endPoint: RoutePoint,
-  startOffset = ISLAND_ROUTE_OFFSET,
-  endOffset = ISLAND_ROUTE_OFFSET,
+  startOffset = ISLAND_ROUTE_EDGE_OFFSET,
+  endOffset = ISLAND_ROUTE_EDGE_OFFSET,
 ) {
-  const { startAnchor, endAnchor } = createSegmentEndpoints(
+  const { startAnchor, endAnchor } = createEdgeAnchors(
     startPoint,
     endPoint,
     startOffset,
     endOffset,
   )
-  const { controlPointOne, controlPointTwo } = createRouteControlPoints(startAnchor, endAnchor)
+  const deltaX = endAnchor.left - startAnchor.left
+  const deltaY = endAnchor.top - startAnchor.top
+  const horizontalOffset = deltaX * ROUTE_CURVE_RATIO
+  const verticalOffset = clamp(deltaY * 0.2, -30, 30)
+  const controlPointOne = {
+    left: startAnchor.left + horizontalOffset,
+    top: startAnchor.top + verticalOffset,
+  }
+  const controlPointTwo = {
+    left: endAnchor.left - horizontalOffset,
+    top: endAnchor.top - verticalOffset,
+  }
 
   return `M ${startAnchor.left} ${startAnchor.top} C ${controlPointOne.left} ${controlPointOne.top}, ${controlPointTwo.left} ${controlPointTwo.top}, ${endAnchor.left} ${endAnchor.top}`
 }
 
-function createRouteSegments(points: RoutePoint[], treasurePoint?: RoutePoint | null) {
-  if (points.length === 0) {
+function createRouteSegments(
+  points: RoutePoint[],
+  treasurePoint?: RoutePoint | null,
+) {
+  const routePoints = treasurePoint ? [...points, treasurePoint] : points
+
+  if (routePoints.length < 2) {
     return []
   }
 
-  const segments = points.slice(0, -1).map((startPoint, index) =>
-    createSegmentPath(startPoint, points[index + 1]),
+  return routePoints.slice(0, -1).map((point, index) =>
+    createRouteSegmentPath(
+      point,
+      routePoints[index + 1],
+      ISLAND_ROUTE_EDGE_OFFSET,
+      treasurePoint && index === routePoints.length - 2
+        ? TREASURE_ROUTE_EDGE_OFFSET
+        : ISLAND_ROUTE_EDGE_OFFSET,
+    ),
   )
-
-  if (treasurePoint && points.length > 0) {
-    segments.push(
-      createSegmentPath(
-        points[points.length - 1],
-        treasurePoint,
-        ISLAND_ROUTE_OFFSET,
-        0,
-      ),
-    )
-  }
-
-  return segments
 }
 
 function createRouteLayout(
