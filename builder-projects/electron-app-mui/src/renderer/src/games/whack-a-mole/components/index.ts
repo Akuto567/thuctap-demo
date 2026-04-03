@@ -12,4 +12,3 @@ export type { QuestionsTabProps, SummarySidebarProps } from './QuestionsTab'
 
 export { SettingsTab } from './SettingsTab'
 export type { SettingsTabProps } from './SettingsTab'
-

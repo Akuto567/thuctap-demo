@@ -2,7 +2,6 @@ import { SettingsContext, SettingsContextValue } from '@renderer/context/Setting
 import { useContext } from 'react'
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
-// eslint-disable-next-line react-refresh/only-export-components
 
 export function useSettings(): SettingsContextValue {
   const ctx = useContext(SettingsContext)

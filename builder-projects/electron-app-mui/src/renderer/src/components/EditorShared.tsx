@@ -25,4 +25,3 @@ export type {
   SidebarTabProps,
   StickyHeaderProps
 } from './editors'
-

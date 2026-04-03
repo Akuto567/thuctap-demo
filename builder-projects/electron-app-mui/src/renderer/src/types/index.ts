@@ -9,6 +9,6 @@
  */
 
 // Re-export everything from shared
-export * from '../../../shared';
+export * from '../../../shared'
 
 // Local additions that are renderer-specific can go here
