@@ -1,6 +1,7 @@
+import AddLocationIcon from '@mui/icons-material/AddLocation'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
-import { Box, IconButton, TextField, Typography } from '@mui/material'
+import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useRef } from 'react'
 import { LabelledDiagramPoint } from '../../../types'
 
@@ -125,16 +126,18 @@ function PointEntry({
       />
 
       {/* Delete Button */}
-      <IconButton
-        size="small"
-        onClick={handleDelete}
-        sx={{
-          color: 'text.secondary',
-          '&:hover': { color: 'error.main', bgcolor: 'rgba(248,113,113,0.1)' }
-        }}
-      >
-        <DeleteIcon sx={{ fontSize: 18 }} />
-      </IconButton>
+      <Tooltip title="Delete point">
+        <IconButton
+          size="small"
+          onClick={handleDelete}
+          sx={{
+            color: 'text.secondary',
+            '&:hover': { color: 'error.main', bgcolor: 'rgba(248,113,113,0.1)' }
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Tooltip>
     </Box>
   )
 }
@@ -163,6 +166,11 @@ export function PointListPanel({
     }
   }, [selectedPointId, points])
 
+  // Handle add point at center
+  const handleAddPointAtCenter = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('labelled-diagram-add-point-center'))
+  }, [])
+
   return (
     <Box
       sx={{
@@ -173,12 +181,15 @@ export function PointListPanel({
         overflow: 'hidden'
       }}
     >
-      {/* Header */}
+      {/* Header with Add Button */}
       <Box
         sx={{
           p: 2,
           pb: 1,
-          borderBottom: '1px solid rgba(255,255,255,0.06)'
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
         }}
       >
         <Typography
@@ -188,6 +199,18 @@ export function PointListPanel({
         >
           Points ({points.length})
         </Typography>
+        <Tooltip title="Add point at center of view">
+          <IconButton
+            onClick={handleAddPointAtCenter}
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': { color: 'primary.main', bgcolor: 'rgba(110,231,183,0.1)' }
+            }}
+          >
+            <AddLocationIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* Point List */}
@@ -215,7 +238,7 @@ export function PointListPanel({
               No points yet
             </Typography>
             <Typography variant="caption">
-              Click on the image to add your first point
+              Click on the image or use the + button above to add a point
             </Typography>
           </Box>
         ) : (
