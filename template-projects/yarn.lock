@@ -2111,6 +2111,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"howler@npm:^2.2.3":
+  version: 2.2.4
+  resolution: "howler@npm:2.2.4"
+  checksum: 10c0/74a295f56fd9b2abce122b27ed12c33fa195fb8a76832803e92d8e462a1eca803b55f44c14db052211d0cfab85c7c5249664c68d95bbbc16c775fac73866c6ef
+  languageName: node
+  linkType: hard
+
 "http-cache-semantics@npm:^4.1.1":
   version: 4.2.0
   resolution: "http-cache-semantics@npm:4.2.0"
@@ -2924,6 +2931,7 @@ __metadata:
     globals: "npm:^17.4.0"
     react: "npm:^19.2.4"
     react-dom: "npm:^19.2.4"
+    react-sounds: "npm:^1.0.30"
     react-textfit: "npm:^1.1.1"
     tailwindcss: "npm:^4.2.2"
     typescript: "npm:~6.0.2"
@@ -3133,6 +3141,20 @@ __metadata:
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: 10c0/33977da7a5f1a287936a0c85639fec6ca74f4f15ef1e59a6bc20338fc73dc69555381e211f7a3529b8150a1f71e4225525b41b60b52965bda53ce7d47377ada1
+  languageName: node
+  linkType: hard
+
+"react-sounds@npm:^1.0.30":
+  version: 1.0.30
+  resolution: "react-sounds@npm:1.0.30"
+  dependencies:
+    howler: "npm:^2.2.3"
+  peerDependencies:
+    howler: ^2.2.3
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  bin:
+    react-sounds-cli: bin/react-sounds-cli.js
+  checksum: 10c0/cae3d0955234977782612c57e7d419eed1e4b8647b6b17b01687ba80ac05991f850385552263577566cfb5f30014346559ca8685e9df417edf1a4a32ce737eb6
   languageName: node
   linkType: hard
 

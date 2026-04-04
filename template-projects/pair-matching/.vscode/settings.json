@@ -1,4 +1,7 @@
 {
     "liveServer.settings.port": 5501,
-    "formatFiles.runOrganizeImports": true
+    "formatFiles.runOrganizeImports": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always"
+    }
 }

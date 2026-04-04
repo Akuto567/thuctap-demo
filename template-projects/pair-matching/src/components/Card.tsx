@@ -1,10 +1,10 @@
+import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useMemo, useState } from "react";
 import { Textfit } from "react-textfit";
 import type { CardProps } from "../types/components";
 import { isEmoji } from "../utils";
 import CardBack from "./CardBack";
-import { useCallback, useMemo, useState } from "react";
-import clsx from "clsx";
 
 export default function Card({ card, onClick, disabled, size }: CardProps) {
   const { isFlipped, isMatched, image, keyword } = card;

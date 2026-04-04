@@ -1,13 +1,16 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState, useRef, useCallback, useLayoutEffect } from "react";
 import { TutorialViewer } from "@minigame/tutorial-viewer";
-import type { GameConfig, CardState } from "../types/objects";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSound } from "react-sounds";
+import failSound from "../../assets/sounds/blocked.mp3";
+import successSound from "../../assets/sounds/success_blip.mp3";
+import { MY_APP_DATA } from "../data";
+import type { CardState, GameConfig } from "../types/objects";
 import { buildDeck, getOptimalGrid } from "../utils";
 import Card from "./Card";
 import { HUD } from "./HUD";
 import MascotBanner from "./MascotBanner";
 import WellDoneScreen from "./WellDoneScreen";
-import { MY_APP_DATA } from "../data";
 
 // ─── Main Game ────────────────────────────────────────────────────────────────
 export default function MatchingGame() {
@@ -105,6 +108,9 @@ export default function MatchingGame() {
   const totalPairs = cards.length / 2;
   const matchedPairs = cards.filter((c) => c.isMatched).length / 2;
 
+  const { play: playSuccessSound } = useSound(successSound);
+  const { play: playFailSound } = useSound(failSound);
+
   // Handle card click
   const handleCardClick = useCallback(
     (uid: string) => {
@@ -149,6 +155,7 @@ export default function MatchingGame() {
               }
               return updated;
             });
+            playSuccessSound();
           } else {
             setMascotState("sad");
             setCards((prev) =>
@@ -158,13 +165,14 @@ export default function MatchingGame() {
                   : c,
               ),
             );
+            playFailSound();
           }
           setLocked(false);
           mascotTimer.current = setTimeout(() => setMascotState("idle"), 1800);
         }, 900);
       }
     },
-    [cards, flipped, locked],
+    [cards, flipped, locked, playFailSound, playSuccessSound],
   );
 
   const restart = useCallback(() => {
