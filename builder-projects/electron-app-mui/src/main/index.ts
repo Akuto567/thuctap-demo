@@ -412,8 +412,7 @@ createHandler('save-project', async (_e, projectData: object, projectPath: strin
 })
 
 /** Save As: pick folder, copy assets, write file. Returns new paths or null if canceled. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-createHandler('save-project-as', async (_) => {
+createHandler('save-project-as', async () => {
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory', 'createDirectory'],
     title: 'Save Project As — Choose New Folder'
