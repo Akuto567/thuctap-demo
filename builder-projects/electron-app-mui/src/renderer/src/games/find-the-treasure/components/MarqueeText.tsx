@@ -1,9 +1,6 @@
 import { Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import Marquee from 'react-fast-marquee'
-
-// MarqueeText.tsx
-// MarqueeText.tsx
 
 export function MarqueeText({
   text,
@@ -16,57 +13,52 @@ export function MarqueeText({
 }): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null)
   const [needsMarquee, setNeedsMarquee] = useState(false)
-
-  // Separate "intent to animate" from "actually mounted"
-  const [shouldAnimate, setShouldAnimate] = useState(false)
   const [isMarqueeMounted, setIsMarqueeMounted] = useState(false)
+  // Add this inside the component, before the return:
+  const measureRef = useRef<HTMLSpanElement>(null)
 
-  // ── Detect if text overflows container ──
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
+  useLayoutEffect(() => {
+    const measureEl = measureRef.current
+    const containerEl = containerRef.current
+    if (!measureEl || !containerEl) return
 
     const checkOverflow = (): void => {
-      const hasOverflow = el.scrollWidth > el.clientWidth + 2
+      // Measure the actual text, not the marquee-manipulated DOM
+      const hasOverflow = measureEl.scrollWidth > containerEl.clientWidth - 2
       setNeedsMarquee(hasOverflow)
     }
 
     checkOverflow()
     const ro = new ResizeObserver(checkOverflow)
-    ro.observe(el)
+    ro.observe(containerEl)
     return () => ro.disconnect()
   }, [text])
 
-  // ── Control animation intent ──
-  useEffect(() => {
-    const wantToAnimate = needsMarquee && (isActive || isHovered)
-    setShouldAnimate(wantToAnimate)
-  }, [needsMarquee, isActive, isHovered])
+  // ── DERIVED STATE: Compute during render (no useEffect needed) ──
+  const shouldAnimate = needsMarquee && (isActive || isHovered)
 
-  // ── Mount Marquee with 1-frame delay to avoid startup flicker ──
-  useEffect(() => {
+  // ── SIDE EFFECT: Mount/unmount Marquee with rAF delay ──
+  useLayoutEffect(() => {
     if (shouldAnimate) {
-      // Delay mount by 1 frame: lets browser layout settle first
-      const raf = requestAnimationFrame(() => {
-        setIsMarqueeMounted(true)
-      })
+      const raf = requestAnimationFrame(() => setIsMarqueeMounted(true))
       return () => cancelAnimationFrame(raf)
-    } else {
-      // Unmount immediately when stopping (no flicker on stop)
-      setIsMarqueeMounted(false)
-      return
     }
-  }, [shouldAnimate])
+    // Unmount immediately when shouldAnimate becomes false
+    setIsMarqueeMounted(false)
+    return
+  }, [shouldAnimate]) // ✅ Only one dependency, no cascading setState
 
-  // ── Shared container style with right-side fade ──
+  // ── Shared styles ──
   const containerStyle: React.CSSProperties = {
     overflow: 'hidden',
     width: '100%',
-    maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
-    WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)'
+    ...(needsMarquee
+      ? {
+          maskImage: 'linear-gradient(to right, black 85%, transparent 100%)'
+        }
+      : {})
   }
 
-  // ── Shared text style ──
   const textStyle = {
     fontSize: '0.75rem',
     color: isActive ? '#6384ff' : 'text.primary',
@@ -78,30 +70,33 @@ export function MarqueeText({
 
   return (
     <div ref={containerRef} style={containerStyle}>
+      {/* Hidden element for accurate overflow measurement */}
+      <span
+        ref={measureRef}
+        style={{
+          position: 'absolute',
+          visibility: 'hidden',
+          whiteSpace: 'nowrap',
+          fontSize: '0.75rem', // Match your text style
+          fontWeight: isActive ? 600 : 400
+        }}
+      >
+        {text}
+      </span>
+
       {isMarqueeMounted ? (
-        // ── Marquee: Mounted with delay for smooth start ──
         <Marquee
           play={true}
           speed={25}
           gradient={false}
           pauseOnHover={false}
-          style={{
-            overflow: 'visible',
-            willChange: 'transform' // GPU hint for smoother animation
-          }}
+          style={{ overflow: 'visible', willChange: 'transform' }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              ...textStyle,
-              willChange: 'transform' // GPU hint
-            }}
-          >
+          <Typography variant="caption" sx={{ ...textStyle, willChange: 'transform' }}>
             {text}
           </Typography>
         </Marquee>
       ) : (
-        // ── Static: Plain text with fade ──
         <Typography
           variant="caption"
           sx={{

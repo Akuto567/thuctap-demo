@@ -12,15 +12,15 @@
  */
 
 import type {
-    AnyAppData,
-    BalloonLetterPickerAppData,
-    FindTheTreasureAppData,
-    GroupSortAppData,
-    LabelledDiagramAppData,
-    PairMatchingAppData,
-    QuizAppData,
-    WhackAMoleAppData,
-    WordSearchAppData
+  AnyAppData,
+  BalloonLetterPickerAppData,
+  FindTheTreasureAppData,
+  GroupSortAppData,
+  LabelledDiagramAppData,
+  PairMatchingAppData,
+  QuizAppData,
+  WhackAMoleAppData,
+  WordSearchAppData
 } from '../shared'
 
 export type DataTransform = (appData: AnyAppData) => object

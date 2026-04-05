@@ -2,14 +2,7 @@ import AddIcon from '@mui/icons-material/Add'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import DeleteIcon from '@mui/icons-material/Delete'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
-import {
-  Box,
-  Button,
-  IconButton,
-  TextField,
-  Tooltip,
-  Typography
-} from '@mui/material'
+import { Box, Button, IconButton, TextField, Tooltip, Typography } from '@mui/material'
 import React from 'react'
 import { FindTheTreasureAnswer, FindTheTreasureStage } from '../../../types'
 

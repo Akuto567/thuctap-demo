@@ -2,11 +2,7 @@ import { Box, Typography } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
 import React, { useCallback, useState } from 'react'
-import {
-  FindTheTreasureAnswer,
-  FindTheTreasureAppData,
-  FindTheTreasureStage
-} from '../../types'
+import { FindTheTreasureAnswer, FindTheTreasureAppData, FindTheTreasureStage } from '../../types'
 import type { Tab } from './components'
 import { StageSidebar, StagesTab } from './components'
 
@@ -37,47 +33,44 @@ export default function FindTheTreasureEditor({
   const { stages } = data
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
-  const addStage = useCallback(
-    () => {
-      const sc = data._stageCounter + 1
-      const sid = `stage-${sc}`
-      const ac = data._answerCounter
+  const addStage = useCallback(() => {
+    const sc = data._stageCounter + 1
+    const sid = `stage-${sc}`
+    const ac = data._answerCounter
 
-      const answers: FindTheTreasureAnswer[] = [
-        {
-          id: `${sid}-a-${ac + 1}`,
-          text: resolved.prefillNames ? `Option ${ac + 1}` : '',
-          isCorrect: true
-        },
-        {
-          id: `${sid}-a-${ac + 2}`,
-          text: resolved.prefillNames ? `Option ${ac + 2}` : '',
-          isCorrect: false
-        }
-      ]
-
-      const stage: FindTheTreasureStage = {
-        id: sid,
-        stageName: resolved.prefillNames ? `Location ${sc}` : '',
-        stageText: resolved.prefillNames ? `Story ${sc}` : '',
-        question: resolved.prefillNames ? `Prompt ${sc}` : '',
-        answers,
-        stageDescription: resolved.prefillNames ? `Explanation ${sc}` : '',
-        stageValue: 1
+    const answers: FindTheTreasureAnswer[] = [
+      {
+        id: `${sid}-a-${ac + 1}`,
+        text: resolved.prefillNames ? `Option ${ac + 1}` : '',
+        isCorrect: true
+      },
+      {
+        id: `${sid}-a-${ac + 2}`,
+        text: resolved.prefillNames ? `Option ${ac + 2}` : '',
+        isCorrect: false
       }
+    ]
 
-      onChange({
-        ...data,
-        _stageCounter: sc,
-        _answerCounter: ac + 2,
-        stages: [...stages, stage]
-      })
+    const stage: FindTheTreasureStage = {
+      id: sid,
+      stageName: resolved.prefillNames ? `Location ${sc}` : '',
+      stageText: resolved.prefillNames ? `Story ${sc}` : '',
+      question: resolved.prefillNames ? `Prompt ${sc}` : '',
+      answers,
+      stageDescription: resolved.prefillNames ? `Explanation ${sc}` : '',
+      stageValue: 1
+    }
 
-      // Auto-select the new stage
-      setActiveStageId(sid)
-    },
-    [data, stages, resolved.prefillNames, onChange]
-  )
+    onChange({
+      ...data,
+      _stageCounter: sc,
+      _answerCounter: ac + 2,
+      stages: [...stages, stage]
+    })
+
+    // Auto-select the new stage
+    setActiveStageId(sid)
+  }, [data, stages, resolved.prefillNames, onChange])
 
   const addStageFromDrop = useCallback(
     async (_filePath: string) => {
