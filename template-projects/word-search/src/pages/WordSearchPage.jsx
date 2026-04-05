@@ -2,18 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import GamePreview from "../components/Game/GamePreview";
 import { generateWordSearch } from "../engine/generateWordSearch";
+import { MY_APP_DATA } from "../data";
 
 const customBackground = "";
 
 export default function WordSearchPage() {
-  const [items] = useState(window.APP_DATA?.items || [
-    { word: "CAT", image: "🐱" },
-    { word: "FLOWER", image: "🌸" },
-    { word: "JUMP", image: "🦘" },
-    { word: "BIRD", image: "🐦" },
-    { word: "STAR", image: "⭐" }
+  const successAudio = useRef(null);
+  const [items] = useState(MY_APP_DATA?.items || [
+    { id: "item1", keyword: "CAT", image: "🐱" },
+    { id: "item2", keyword: "FLOWER", image: "🌸" },
+    { id: "item3", keyword: "JUMP", image: "🦘" },
+    { id: "item4", keyword: "BIRD", image: "🐦" },
+    { id: "item5", keyword: "STAR", image: "⭐" }
   ]);
-  const [background] = useState(window.APP_DATA?.background || customBackground);
+  const [background] = useState(MY_APP_DATA?.background || customBackground);
   const [grid, setGrid] = useState([]);
   const [foundCells, setFoundCells] = useState([]);
   const [placements, setPlacements] = useState([]);
@@ -21,6 +23,7 @@ export default function WordSearchPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedCells, setSelectedCells] = useState([]);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [hintCell, setHintCell] = useState(null);
 
   const isDraggingRef = useRef(false);
   const anchorCellRef = useRef(null);
@@ -40,7 +43,7 @@ export default function WordSearchPage() {
 
   const generateGame = () => {
     const words = items
-      .map((item) => item.word.trim().toUpperCase())
+      .map((item) => item.keyword.trim().toUpperCase())
       .filter((word) => word);
 
     if (words.length === 0) {
@@ -53,11 +56,17 @@ export default function WordSearchPage() {
     setFoundCells([]);
     setFoundWords([]);
     setSelectedCells([]);
+    setHintCell(null);
     setShowPreview(true);
   };
 
   useEffect(() => {
     generateGame();
+  }, []);
+
+  useEffect(() => {
+    successAudio.current = new Audio("/assets/sounds/success_blip.mp3");
+    successAudio.current.volume = 0.3;
   }, []);
 
   useEffect(() => {
@@ -255,8 +264,13 @@ export default function WordSearchPage() {
           if (prev.includes(foundWord)) {
             return [...prev];
           }
+          if (successAudio.current) {
+            successAudio.current.currentTime = 0;
+            successAudio.current.play().catch(() => {});
+          }
           return [...prev, foundWord];
         });
+        setHintCell(null);
       }
     }
 
@@ -271,6 +285,19 @@ export default function WordSearchPage() {
     generateGame();
   };
 
+  const handleHint = () => {
+    const unfoundWord = placements.find(
+      (placement) => !foundWords.includes(placement.word)
+    );
+
+    if (!unfoundWord || !unfoundWord.positions || unfoundWord.positions.length === 0) {
+      return;
+    }
+
+    const firstLetterPos = unfoundWord.positions[0];
+    setHintCell({ row: firstLetterPos.row, col: firstLetterPos.col });
+  };
+
   return (
     <>
       <div className="game-page">
@@ -282,6 +309,8 @@ export default function WordSearchPage() {
             selectedCells={selectedCells}
             foundCells={foundCells}
             foundWords={foundWords}
+            hintCell={hintCell}
+            onHint={handleHint}
             onPointerDown={handlePointerDown}
             onPointerEnter={handlePointerEnter}
             onPointerMove={handlePointerMove}

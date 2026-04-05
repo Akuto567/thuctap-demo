@@ -7,13 +7,18 @@ export default function Cell({
   col,
   isSelected,
   isFound,
+  isHint,
   onPointerDown,
   onPointerEnter,
   onPointerUp
 }) {
+  const classes = ["cell"];
+  if (isSelected) classes.push("selected");
+  if (isFound) classes.push("found");
+  
   return (
     <div
-      className={`cell ${isSelected ? "selected" : ""} ${isFound ? "found" : ""}`}
+      className={classes.join(" ")}
       data-word-cell="true"
       data-row={row}
       data-col={col}
@@ -22,6 +27,7 @@ export default function Cell({
       onPointerUp={() => onPointerUp?.()}
     >
       {letter}
+      {isHint === true && <div className="hint-marker" />}
     </div>
   );
 }

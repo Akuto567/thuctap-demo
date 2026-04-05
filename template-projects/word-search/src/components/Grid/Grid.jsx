@@ -5,6 +5,7 @@ export default function Grid({
   grid,
   selectedCells = [],
   foundCells = [],
+  hintCell,
   onPointerDown,
   onPointerEnter,
   onPointerMove,
@@ -15,6 +16,11 @@ export default function Grid({
 
   const isFound = (row, col) =>
     foundCells?.some((cell) => cell.row === row && cell.col === col);
+
+  const isHint = (row, col) => {
+    if (!hintCell) return false;
+    return hintCell.row === row && hintCell.col === col;
+  };
 
   const rowCount = grid.length || 12;
   const colCount = grid.reduce(
@@ -46,6 +52,7 @@ export default function Grid({
               col={colIndex}
               isSelected={isSelected(rowIndex, colIndex)}
               isFound={isFound(rowIndex, colIndex)}
+              isHint={isHint(rowIndex, colIndex)}
               onPointerDown={onPointerDown}
               onPointerEnter={onPointerEnter}
               onPointerUp={onPointerUp}
