@@ -503,7 +503,7 @@ createHandler('preview-project', async (_, opts) => {
 
   if (!fs.existsSync(htmlPath)) throw new Error('Template not found')
 
-  const sanitizedData = normalizeAssetPaths(appData, projectDir)
+  const sanitizedData = normalizeAssetPaths(normalizeAssetPathsInProject(appData), projectDir)
   const templateData = prepareAppDataForTemplate(templateId, sanitizedData as AnyAppData)
   const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
 
@@ -571,7 +571,9 @@ createHandler(
     if (!fs.existsSync(htmlPath)) throw new Error(`Template HTML not found for: ${templateId}`)
 
     // Resolve asset paths for export (prepends assets/user/ to filenames)
-    const exportedAppData = resolveAssetPathsForExport(appData) as object
+    const exportedAppData = resolveAssetPathsForExport(
+      normalizeAssetPathsInProject(appData)
+    ) as object
     const templateData = prepareAppDataForTemplate(templateId, exportedAppData)
     const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
 
