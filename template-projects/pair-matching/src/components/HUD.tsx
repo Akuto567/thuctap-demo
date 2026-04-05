@@ -66,7 +66,10 @@ export function HUD({
         <Instructions uiScale={uiScale} compact={isNarrow} />
 
         {/* Restart & Tutorial */}
-        <div className="flex flex-col items-center mt-2" style={{ gap: baseGap * 0.5 }}>
+        <div
+          className="flex flex-col items-center mt-2"
+          style={{ gap: baseGap * 0.5 }}
+        >
           <RestartButton
             onClick={onRestart}
             uiScale={uiScale}
@@ -108,7 +111,12 @@ export function HUD({
 
         <div className="flex items-center" style={{ gap: baseGap * 0.5 }}>
           <RestartButton onClick={onRestart} uiScale={uiScale} iconOnly large />
-          <TutorialButton onClick={onShowTutorial} uiScale={uiScale} iconOnly large />
+          <TutorialButton
+            onClick={onShowTutorial}
+            uiScale={uiScale}
+            iconOnly
+            large
+          />
         </div>
       </div>
 

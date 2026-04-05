@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
+import { AnimatePresence, motion } from "framer-motion";
 import { layoutTransition } from "../config";
 import type { GroupColumnProps } from "../types/components";
 import { ImageOrEmoji } from "./ImageOrEmoji";

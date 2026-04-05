@@ -1,13 +1,16 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { TutorialViewer } from "@minigame/tutorial-viewer";
-import type { GameConfig, CardState } from "../types/objects";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSound } from "react-sounds";
+import failSound from "../../assets/sounds/blocked.mp3";
+import successSound from "../../assets/sounds/success_blip.mp3";
+import { MY_APP_DATA } from "../data";
+import type { CardState, GameConfig } from "../types/objects";
 import { buildDeck, getOptimalGrid } from "../utils";
 import Card from "./Card";
 import { HUD } from "./HUD";
 import MascotBanner from "./MascotBanner";
 import WellDoneScreen from "./WellDoneScreen";
-import { MY_APP_DATA } from "../data";
 
 // ─── Main Game ────────────────────────────────────────────────────────────────
 export default function MatchingGame() {
@@ -31,62 +34,63 @@ export default function MatchingGame() {
   // Grid dimensions (fixed from deck build)
   const grid = useMemo(() => getOptimalGrid(cards.length), [cards.length]);
 
-  // Responsive: track container size and orientation
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
-  const [isLandscape, setIsLandscape] = useState(
-    window.innerWidth > window.innerHeight,
-  );
+  // Responsive: track window size for synchronous layout calculation
+  const [windowSize, setWindowSize] = useState({
+    w: window.innerWidth,
+    h: window.innerHeight,
+  });
 
-  useEffect(() => {
-    const obs = new ResizeObserver((entries) => {
-      const e = entries[0];
-      if (e) {
-        setContainerSize({ w: e.contentRect.width, h: e.contentRect.height });
-      }
-    });
-    if (containerRef.current) obs.observe(containerRef.current);
-
+  useLayoutEffect(() => {
     const onResize = () =>
-      setIsLandscape(window.innerWidth / window.innerHeight >= 1.2);
+      setWindowSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", onResize);
-    return () => {
-      obs.disconnect();
-      window.removeEventListener("resize", onResize);
-    };
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Compute card size to fill available space
+  const isLandscape = windowSize.w / windowSize.h >= 1.2;
+  const isNarrow = windowSize.w / windowSize.h < 0.6;
+
   // Proportional UI Scale
-  const isNarrow = useMemo(() => {
-    return window.innerWidth / window.innerHeight < 0.6;
-  }, []);
-
   const uiScale = useMemo(() => {
     if (isLandscape) {
       // Landscape: base on height
-      return Math.min(Math.max(window.innerHeight / 850, 0.8), 1.25);
+      return Math.min(Math.max(windowSize.h / 850, 0.8), 1.25);
     } else {
       // Portrait: base on width AND height to prevent HUD overflow
       const widthBase = isNarrow ? 380 : 440;
       const heightBase = 800;
-      const scaleByWidth = window.innerWidth / widthBase;
-      const scaleByHeight = window.innerHeight / heightBase;
+      const scaleByWidth = windowSize.w / widthBase;
+      const scaleByHeight = windowSize.h / heightBase;
 
       // Use the smaller of the two to ensure it fits, but with a floor
       const scale = Math.min(scaleByWidth, scaleByHeight);
       return Math.min(Math.max(scale, isNarrow ? 0.85 : 0.95), 1.4);
     }
-  }, [isLandscape, isNarrow]);
+  }, [isLandscape, isNarrow, windowSize.w, windowSize.h]);
 
   const finalCols = isLandscape ? grid.cols : grid.rows;
   const finalRows = isLandscape ? grid.rows : grid.cols;
 
-  // Compute card size to fill available space
-  // Reduced base GAP for tighter look on small screens
+  // Compute card size to fill available space symmetrically
   const GAP = Math.min(10 * uiScale, 18);
+
+  const containerSize = useMemo(() => {
+    // These match the container's CSS dimensions (vw/vh minus padding constraints)
+    const padding = 8 * uiScale * 2;
+    if (isLandscape) {
+      return {
+        w: windowSize.w * 0.65 - padding,
+        h: windowSize.h * 0.9 - padding,
+      };
+    } else {
+      return {
+        w: windowSize.w * 0.95 - padding,
+        h: windowSize.h * 0.6 - padding,
+      };
+    }
+  }, [isLandscape, windowSize.w, windowSize.h, uiScale]);
+
   const cardSize = useMemo(() => {
-    if (!containerSize.w || !containerSize.h) return 80;
     const maxByCols = Math.floor(
       (containerSize.w - GAP * (finalCols - 1)) / finalCols,
     );
@@ -103,6 +107,9 @@ export default function MatchingGame() {
   // Matched pairs count
   const totalPairs = cards.length / 2;
   const matchedPairs = cards.filter((c) => c.isMatched).length / 2;
+
+  const { play: playSuccessSound } = useSound(successSound);
+  const { play: playFailSound } = useSound(failSound);
 
   // Handle card click
   const handleCardClick = useCallback(
@@ -148,6 +155,7 @@ export default function MatchingGame() {
               }
               return updated;
             });
+            playSuccessSound();
           } else {
             setMascotState("sad");
             setCards((prev) =>
@@ -157,13 +165,14 @@ export default function MatchingGame() {
                   : c,
               ),
             );
+            playFailSound();
           }
           setLocked(false);
           mascotTimer.current = setTimeout(() => setMascotState("idle"), 1800);
         }, 900);
       }
     },
-    [cards, flipped, locked],
+    [cards, flipped, locked, playFailSound, playSuccessSound],
   );
 
   const restart = useCallback(() => {
@@ -229,11 +238,11 @@ export default function MatchingGame() {
       </div>
 
       <div
-        ref={containerRef}
         className="shrink flex items-center justify-center overflow-hidden"
         style={{
-          width: isLandscape ? "min(65vw, " + (gridW + 40) + "px)" : "95vw",
-          height: isLandscape ? "90vh" : "60vh",
+          width: isLandscape ? `min(65vw, ${gridW + 40}px)` : "95vw",
+          height: isLandscape ? "90vh" : undefined,
+          flex: isLandscape ? undefined : 1,
           padding: 8 * uiScale,
         }}
       >

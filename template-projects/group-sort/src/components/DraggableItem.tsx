@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { motion } from "framer-motion";
-import type { Item } from "../types/objects";
 import { layoutTransition } from "../config";
+import type { Item } from "../types/objects";
 import { ImageOrEmoji } from "./ImageOrEmoji";
 
 interface Props {

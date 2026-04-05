@@ -82,7 +82,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   useEffect(() => {
     setProjectSettings(locationState?.data?.settings ?? null)
     return () => setProjectSettings(null)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [locationState?.data?.settings, setProjectSettings])
 
   // Sync project settings from context to meta (for saving)
   // Only update meta when projectSettings change, not vice versa

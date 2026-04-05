@@ -8,16 +8,19 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { TutorialViewer } from "@minigame/tutorial-viewer";
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useRef, useState } from "react";
-import { TutorialViewer } from "@minigame/tutorial-viewer";
+import { useSound } from "react-sounds";
+import failSound from "../../assets/sounds/blocked.mp3";
+import successSound from "../../assets/sounds/success_blip.mp3";
+import { layoutTransition } from "../config";
 import { MY_APP_DATA } from "../data";
 import type { Group, Item } from "../types/objects";
-import { layoutTransition } from "../config";
+import { shuffleGroups, shuffleItems } from "../utils";
 import DraggableItem, { ItemCard } from "./DraggableItem";
 import GroupColumn from "./GroupColumn";
 import { ImageOrEmoji } from "./ImageOrEmoji";
-import { shuffleGroups, shuffleItems } from "../utils";
 
 const MatchingGameDemo: React.FC = () => {
   // Settings state (must be before other state that depends on it)
@@ -67,6 +70,9 @@ const MatchingGameDemo: React.FC = () => {
     }),
   );
 
+  const { play: playSuccessSound } = useSound(successSound);
+  const { play: playFailSound } = useSound(failSound);
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveItem(event.active.data.current as Item);
   };
@@ -88,9 +94,11 @@ const MatchingGameDemo: React.FC = () => {
         [targetGroupId]: [item, ...prev[targetGroupId]], // Add to top instead of bottom
       }));
       showFeedback("correct", "Chính xác! 🎉");
+      playSuccessSound();
     } else {
       // SAI
       showFeedback("incorrect", "Thử lại nhé! 🤔");
+      playFailSound();
     }
   };
 

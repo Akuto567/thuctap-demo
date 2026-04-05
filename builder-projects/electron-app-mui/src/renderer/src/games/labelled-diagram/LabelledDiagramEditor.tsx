@@ -101,17 +101,22 @@ export default function LabelledDiagramEditor({
   const [localPoints, setLocalPoints] = useState<LabelledDiagramPoint[]>(points)
   const [imgSize, setImgSize] = useState<{ width: number; height: number } | null>(null)
 
-  // Reset imgSize when image changes to ensure recalculation
-  useEffect(() => {
-    setImgSize(null)
-  }, [imagePath])
+  const [prevPoints, setPrevPoints] = useState(points)
+  const [prevImagePath, setPrevImagePath] = useState(imagePath)
 
-  // Sync localPoints with appData.points when NOT dragging
-  useEffect(() => {
+  // If points prop changed and we aren't dragging, sync localPoints
+  if (points !== prevPoints) {
+    setPrevPoints(points)
     if (!draggingPointId) {
       setLocalPoints(points)
     }
-  }, [points, draggingPointId])
+  }
+
+  // If imagePath changed, reset imgSize
+  if (imagePath !== prevImagePath) {
+    setPrevImagePath(imagePath)
+    setImgSize(null)
+  }
 
   const transformRef = useRef<ReactZoomPanPinchRef>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -615,6 +620,7 @@ export default function LabelledDiagramEditor({
                 maxScale={10}
                 centerOnInit
                 disabled={!!draggingPointId} // IMPORTANT: Disable pan when dragging a point
+                doubleClick={{ disabled: true }}
                 onInit={(ref) => setTransform({ ...ref.state })}
                 onTransformed={(ref) => setTransform({ ...ref.state })}
                 onPanning={(ref) => setTransform({ ...ref.state })}
