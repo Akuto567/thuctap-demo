@@ -1,7 +1,7 @@
 export interface WordSearchItem {
   id: string;
   image: string;
-  keyword: string;
+  word: string;
 }
 
 export interface WordSearchConfig {

@@ -117,8 +117,13 @@ const getData = (): Question[] => {
     return isTestMode() ? TEST_DATA : DEFAULT_DATA;
   }
 
-  const externalData = (window as Window & typeof globalThis & { MY_APP_DATA?: { questions: Question[] } })["MY_APP_DATA"];
+  const win = window as any;
+  const externalData = win.MY_APP_DATA || win.APP_DATA;
 
+  // Handle: { questions: [...] } or直接的数组 [...]
+  if (Array.isArray(externalData)) {
+    return externalData;
+  }
   if (externalData?.questions) {
     return externalData.questions;
   }

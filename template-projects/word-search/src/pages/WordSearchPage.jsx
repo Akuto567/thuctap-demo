@@ -6,15 +6,19 @@ import { MY_APP_DATA } from "../data";
 
 const customBackground = "";
 
+const DEFAULT_ITEMS = [
+  { id: "item1", word: "Cat", image: "🐱" },
+  { id: "item2", word: "Flower", image: "🌸" },
+  { id: "item3", word: "Jump", image: "🦘" },
+  { id: "item4", word: "Bird", image: "🐦" },
+  { id: "item5", word: "Star", image: "⭐" }
+];
+
 export default function WordSearchPage() {
   const successAudio = useRef(null);
-  const [items] = useState(MY_APP_DATA?.items || [
-    { id: "item1", keyword: "CAT", image: "🐱" },
-    { id: "item2", keyword: "FLOWER", image: "🌸" },
-    { id: "item3", keyword: "JUMP", image: "🦘" },
-    { id: "item4", keyword: "BIRD", image: "🐦" },
-    { id: "item5", keyword: "STAR", image: "⭐" }
-  ]);
+  const rawItems = MY_APP_DATA?.items;
+  const initialItems = Array.isArray(rawItems) && rawItems.length > 0 ? rawItems : DEFAULT_ITEMS;
+  const [items] = useState(initialItems);
   const [background] = useState(MY_APP_DATA?.background || customBackground);
   const [grid, setGrid] = useState([]);
   const [foundCells, setFoundCells] = useState([]);
@@ -42,30 +46,39 @@ export default function WordSearchPage() {
   ];
 
   const generateGame = () => {
-    const words = items
-      .map((item) => item.keyword.trim().toUpperCase())
-      .filter((word) => word);
+    try {
+      const validItems = items.filter((item) => item?.word);
+      
+      const wordList = validItems
+        .map((item) => item.word.trim().toUpperCase())
+        .filter((w) => w);
 
-    if (words.length === 0) {
-      return;
+      let result;
+      if (wordList.length === 0) {
+        result = generateWordSearch(["CAT", "FLOWER", "JUMP"], 12);
+      } else {
+        result = generateWordSearch(wordList, 12);
+      }
+      
+      setGrid(result.grid);
+      setPlacements(result.placements);
+      setFoundCells([]);
+      setFoundWords([]);
+      setSelectedCells([]);
+      setHintCell(null);
+      setShowPreview(true);
+    } catch (err) {
+      console.error("[WordSearchPage] generateGame error:", err);
     }
-
-    const result = generateWordSearch(words, 12);
-    setGrid(result.grid);
-    setPlacements(result.placements);
-    setFoundCells([]);
-    setFoundWords([]);
-    setSelectedCells([]);
-    setHintCell(null);
-    setShowPreview(true);
   };
 
   useEffect(() => {
+    console.log("[WordSearchPage] useEffect called, items:", items);
     generateGame();
-  }, []);
+  }, [items]);
 
   useEffect(() => {
-    successAudio.current = new Audio("/assets/sounds/success_blip.mp3");
+    successAudio.current = new Audio("./assets/sounds/success_blip.mp3");
     successAudio.current.volume = 0.3;
   }, []);
 

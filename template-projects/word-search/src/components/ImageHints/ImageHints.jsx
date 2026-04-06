@@ -19,24 +19,24 @@ export default function ImageHints({ items, foundWords }) {
 
   return (
     <div className="image-hints">
-      {items.map((item) => (
+      {items.filter((item) => item?.word).map((item) => (
         <div
           key={item.id}
-          className={`hint ${foundWords?.includes(item.keyword.toUpperCase()) ? "found-hint" : ""}`}
+          className={`hint ${foundWords?.includes(item.word.toUpperCase()) ? "found-hint" : ""}`}
         >
           {isImagePath(item.image) ? (
-            <img src={item.image} alt={item.keyword} />
+            <img src={item.image} alt={item.word} />
           ) : (
             <div className="hint-emoji">
               {item.image}
             </div>
           )}
           <p
-            className={`${getWordSizeClass(item.keyword)} ${
-              foundWords?.includes(item.keyword.toUpperCase()) ? "" : "hidden-word"
+            className={`${getWordSizeClass(item.word)} ${
+              foundWords?.includes(item.word.toUpperCase()) ? "" : "hidden-word"
             }`.trim()}
           >
-            {item.keyword}
+            {item.word}
           </p>
         </div>
       ))}

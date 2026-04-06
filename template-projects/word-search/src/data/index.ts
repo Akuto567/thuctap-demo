@@ -3,24 +3,24 @@ import type { WordSearchConfig } from "../types/objects";
 
 const DEFAULT_DATA: WordSearchConfig = {
   items: [
-    { id: "item1", image: "🐱", keyword: "Cat" },
-    { id: "item2", image: "🌸", keyword: "Flower" },
-    { id: "item3", image: "🦘", keyword: "Jump" },
-    { id: "item4", image: "🐦", keyword: "Bird" },
-    { id: "item5", image: "⭐", keyword: "Star" },
+    { id: "item1", image: "🐱", word: "Cat" },
+    { id: "item2", image: "🌸", word: "Flower" },
+    { id: "item3", image: "🦘", word: "Jump" },
+    { id: "item4", image: "🐦", word: "Bird" },
+    { id: "item5", image: "⭐", word: "Star" },
   ],
   background: "",
 };
 //Chạy yarn dev http://localhost:5173/?test=true để kiểm
 const MORE_TEST_DATA: WordSearchConfig["items"] = [
-  { id: "item1", image: "🌋", keyword: "Volcano" },
-  { id: "item2", image: "🌌", keyword: "Galaxy" },
-  { id: "item3", image: "🧊", keyword: "Ice" },
-  { id: "item4", image: "🕸️", keyword: "Web" },
-  { id: "item5", image: "🦋", keyword: "Butterfly" },
-  { id: "item6", image: "🐝", keyword: "Bee" },
-  { id: "item7", image: "🤖", keyword: "Robot" },
-  { id: "item8", image: "🌲", keyword: "Forest" },
+  { id: "item1", image: "🌋", word: "Volcano" },
+  { id: "item2", image: "🌌", word: "Galaxy" },
+  { id: "item3", image: "🧊", word: "Ice" },
+  { id: "item4", image: "🕸️", word: "Web" },
+  { id: "item5", image: "🦋", word: "Butterfly" },
+  { id: "item6", image: "🐝", word: "Bee" },
+  { id: "item7", image: "🤖", word: "Robot" },
+  { id: "item8", image: "🌲", word: "Forest" },
 ];
 
 const isTestMode = (): boolean => {
@@ -38,16 +38,13 @@ const processItemsToSentenceCase = (
 ): WordSearchConfig["items"] => {
   return items.map((item) => ({
     ...item,
-    keyword: toSentenceCase(item.keyword),
+    word: toSentenceCase(item.word),
   }));
 };
 
 const getData = (): WordSearchConfig => {
-  const externalData =
-    typeof window !== "undefined" &&
-    (window as Window & typeof globalThis & { MY_APP_DATA: WordSearchConfig })[
-      "MY_APP_DATA"
-    ];
+  const win = window as any;
+  const externalData = win.MY_APP_DATA || win.APP_DATA;
 
   if (externalData) {
     return {
@@ -86,7 +83,7 @@ export function createWordSearchGameData(appData?: Partial<WordSearchConfig>): W
       ? appData.items.map((item) => ({
           id: item?.id ?? "",
           image: item?.image ?? "",
-          keyword: item?.keyword ?? ""
+          word: item?.word ?? ""
         }))
       : DEFAULT_DATA.items,
     background:

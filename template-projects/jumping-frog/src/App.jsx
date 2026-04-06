@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { MY_QUESTIONS, shuffleQuestionOptions, normalizeOption } from './data'
 
-const SOUND_CROAK = new Audio('/assets/sounds/frog-croak.mp3')
-const SOUND_SPLASH = new Audio('/assets/sounds/e-water-splash-short.mp3')
+const SOUND_CROAK = new Audio('./assets/sounds/frog-croak.mp3')
+const SOUND_SPLASH = new Audio('./assets/sounds/e-water-splash-short.mp3')
 
 const playSound = (sound) => {
   sound.currentTime = 0
