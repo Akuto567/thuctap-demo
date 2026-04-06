@@ -3,14 +3,17 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { TutorialViewer } from "@minigame/tutorial-viewer";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useSound } from "react-sounds";
 import failSound from "../../assets/sounds/blocked.mp3";
 import successSound from "../../assets/sounds/success_blip.mp3";
@@ -47,6 +50,8 @@ const MatchingGameDemo: React.FC = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
+  const [hasEnteredGroupArea, setHasEnteredGroupArea] = useState(false);
+
   // Use ref to manage feedback timeout
   const feedbackTimeoutRef = useRef<number | null>(null);
 
@@ -75,6 +80,27 @@ const MatchingGameDemo: React.FC = () => {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveItem(event.active.data.current as Item);
+    setHasEnteredGroupArea(false);
+  };
+
+  const handleDragMove = (event: DragMoveEvent) => {
+    if (!hasEnteredGroupArea && groupAreaRef.current) {
+      const rect = event.active.rect.current.translated;
+      if (!rect) return;
+
+      const groupAreaRect = groupAreaRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      if (
+        centerX >= groupAreaRect.left &&
+        centerX <= groupAreaRect.right &&
+        centerY >= groupAreaRect.top &&
+        centerY <= groupAreaRect.bottom
+      ) {
+        setHasEnteredGroupArea(true);
+      }
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -117,6 +143,38 @@ const MatchingGameDemo: React.FC = () => {
       feedbackTimeoutRef.current = null;
     }, 1500);
   };
+
+  const visibilityCollisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      if (!groupAreaRef.current) return rectIntersection(args);
+
+      const groupAreaRect = groupAreaRef.current.getBoundingClientRect();
+
+      const filteredContainers = args.droppableContainers.filter(
+        (container) => {
+          const rect = container.rect.current;
+          if (!rect) return false;
+
+          // Calculate visible width of the droppable column within the group area viewport
+          const intersectionLeft = Math.max(rect.left, groupAreaRect.left);
+          const intersectionRight = Math.min(rect.right, groupAreaRect.right);
+          const visibleWidth = Math.max(
+            0,
+            intersectionRight - intersectionLeft,
+          );
+
+          // Threshold: 25% of column width MUST be visible to be a valid drop target
+          return visibleWidth >= rect.width * 0.25;
+        },
+      );
+
+      return rectIntersection({
+        ...args,
+        droppableContainers: filteredContainers,
+      });
+    },
+    [groupAreaRef],
+  );
 
   const handleRetry = () => {
     // First, return all items back to sidebar (this triggers layout animation)
@@ -306,7 +364,19 @@ const MatchingGameDemo: React.FC = () => {
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
+      collisionDetection={visibilityCollisionDetection}
+      autoScroll={{
+        canScroll: (element) => {
+          // sidebar: element has w-96 or custom-scrollbar (vertical)
+          // group area: check if we've entered it first
+          if (element === groupAreaRef.current) {
+            return hasEnteredGroupArea;
+          }
+          return true;
+        },
+      }}
     >
       <div className="w-screen h-screen bg-sky-100 p-6 flex flex-col overflow-hidden relative font-sans">
         <header className="h-16 flex items-center justify-between mb-6 px-4">
