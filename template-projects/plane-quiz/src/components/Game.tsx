@@ -59,6 +59,82 @@ interface Explosion {
   frame: number;
   id: number;
 }
+const SOUNDS = {
+  pop: './assets/sounds/true.mp3',
+  correct: './assets/sounds/true.mp3',
+  wrong: './assets/sounds/wrong.mp3',
+  complete: './assets/sounds/complete.mp3'
+};
+class SoundPoolManager {
+  private pools: Map<string, HTMLAudioElement[]> = new Map();
+  private currentIndex: Map<string, number> = new Map();
+  
+  constructor() {
+    this.initPool(SOUNDS.correct, 3, 0.6);
+    this.initPool(SOUNDS.wrong, 3, 0.5);
+    this.initPool(SOUNDS.complete, 2, 0.7);
+  }
+  
+  private initPool(url: string, size: number, volume: number) {
+    const pool: HTMLAudioElement[] = [];
+    for (let i = 0; i < size; i++) {
+      const audio = new Audio(url);
+      audio.volume = volume;
+      audio.preload = 'auto';
+      pool.push(audio);
+    }
+    this.pools.set(url, pool);
+    this.currentIndex.set(url, 0);
+  }
+  
+  play(url: string, onEnd?: () => void) {
+    const pool = this.pools.get(url);
+    const index = this.currentIndex.get(url) || 0;
+    
+    if (pool && pool.length > 0) {
+      const audio = pool[index];
+      audio.pause();
+      audio.currentTime = 0;
+      
+      // Thêm sự kiện onended
+      if (onEnd) {
+        audio.onended = () => {
+          audio.onended = null;
+          onEnd();
+        };
+      }
+      
+      audio.play().catch(e => console.log('Audio error:', e));
+      this.currentIndex.set(url, (index + 1) % pool.length);
+    } else {
+      const audio = new Audio(url);
+      if (onEnd) {
+        audio.onended = onEnd;
+      }
+      audio.play().catch(e => console.log('Audio error:', e));
+    }
+  }
+  
+  playCorrect(onEnd?: () => void) {
+    this.play(SOUNDS.correct, onEnd);
+  }
+  
+  playWrong(onEnd?: () => void) {
+    this.play(SOUNDS.wrong, onEnd);
+  }
+  
+  playComplete(onEnd?: () => void) {
+    this.play(SOUNDS.complete, onEnd);
+  }
+}
+
+// Tạo instance
+const soundPool = new SoundPoolManager();
+
+// Hàm gọi tắt
+const playCorrectSound = () => soundPool.playCorrect();
+const playWrongSound = () => soundPool.playWrong();
+const playCompleteSound = () => soundPool.playComplete();
 
 const Game: React.FC = () => {
   const [playerY, setPlayerY] = useState(300);
@@ -67,7 +143,7 @@ const Game: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
-  const [canvasSize, setCanvasSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
   const [explosions, setExplosions] = useState<Explosion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [lives, setLives] = useState(3);
@@ -75,9 +151,6 @@ const Game: React.FC = () => {
   const [showResult, setShowResult] = useState(false);
   const [resultMessage, setResultMessage] = useState('');
   const [resultType, setResultType] = useState<'success' | 'error' | 'win'>('success');
-  const correctSoundRef = useRef<HTMLAudioElement | null>(null);
-  const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
-  const completeSoundRef = useRef<HTMLAudioElement | null>(null);
 
   const currentBaseSpeedRef = useRef<number>(2);
   
@@ -273,10 +346,39 @@ const Game: React.FC = () => {
     answer7: '',
     correctAnswer: ''
   });
-  const playSound = (audio: HTMLAudioElement | null) => {
-  if (!audio) return;
+  const playSound = (audio: HTMLAudioElement | null, fallbackBeep = true) => {
+  if (!audio) {
+    if (fallbackBeep) playBeep();
+    return;
+  }
   audio.currentTime = 0;
-  audio.play().catch(e => console.log('Audio error:', e));
+  audio.play().catch(e => {
+    console.log('Audio error:', e);
+    if (fallbackBeep) playBeep();
+  });
+};
+
+// Thêm hàm beep fallback
+const playBeep = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = 880;
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.2;
+    
+    oscillator.start();
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2);
+    oscillator.stop(audioContext.currentTime + 0.2);
+    
+    if (audioContext.state === 'suspended') audioContext.resume();
+  } catch (e) {
+    console.log('Beep error:', e);
+  }
 };
   
   // IFrame states
@@ -584,13 +686,6 @@ const Game: React.FC = () => {
     crossImage.current.src = './assets/images/cross.png';
     explosionImage.current.src = './assets/images/explosion.png';
 
-    correctSoundRef.current = new Audio('./assets/sounds/true.mp3');
-    wrongSoundRef.current = new Audio('./assets/sounds/wrong.mp3');
-    completeSoundRef.current = new Audio('./assets/sounds/complete.mp3');
-    correctSoundRef.current.load();
-    wrongSoundRef.current.load();
-    completeSoundRef.current.load();
-
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'w' || e.key === 's' || e.key === 'W' || e.key === 'S') {
@@ -613,18 +708,6 @@ const Game: React.FC = () => {
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      if (correctSoundRef.current) {
-      correctSoundRef.current.pause();
-      correctSoundRef.current.src = '';
-    }
-    if (wrongSoundRef.current) {
-      wrongSoundRef.current.pause();
-      wrongSoundRef.current.src = '';
-    }
-    if (completeSoundRef.current) {
-      completeSoundRef.current.pause();
-      completeSoundRef.current.src = '';
-    }
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -635,7 +718,7 @@ const Game: React.FC = () => {
   }, []);
 
   // Cập nhật kích thước canvas
-  useEffect(() => {
+  /*useEffect(() => {
     const updateCanvasSize = () => {
       setCanvasSize({
         width: window.innerWidth,
@@ -647,7 +730,7 @@ const Game: React.FC = () => {
     window.addEventListener('resize', updateCanvasSize);
     
     return () => window.removeEventListener('resize', updateCanvasSize);
-  }, []);
+  }, []);*/
 
   // Animation cho vụ nổ
   useEffect(() => {
@@ -706,7 +789,7 @@ const Game: React.FC = () => {
     activateInvincibility(2000);
 
     if (isCorrect) {
-      playSound(correctSoundRef.current);
+      playCorrectSound();
       setScore(prev => prev + 10);
       setResultMessage('Correct! +10 points');
       setResultType('success');
@@ -717,29 +800,32 @@ const Game: React.FC = () => {
       
       const minSpeed = 2;
       const maxSpeed = 5;
-      const step = 0.5;
+      const step = 0.1;
       let newSpeed = minSpeed + (newCorrectCount * step);
       newSpeed = Math.min(maxSpeed, newSpeed); 
       setBaseGameSpeed(newSpeed);
       currentBaseSpeedRef.current = newSpeed;
 
       createExplosion(cloud.x, cloud.y, cloud.width, cloud.height);
-      
+      const isLastQuestion = currentQuestionIndex + 1 >= questions.length;
       setTimeout(() => {
         cloudsRef.current = [];
         setShowResult(false);
         
-        if (currentQuestionIndex + 1 >= questions.length) {
-          playSound(completeSoundRef.current);
+      if (isLastQuestion) {
+      // Phát âm thanh chiến thắng TRƯỚC khi setGameWin
+        playCompleteSound();
+        // Delay nhẹ để âm thanh kịp phát
+        setTimeout(() => {
           setGameWin(true);
           setIsPlaying(false);
-        } else {
-          setCurrentQuestionIndex(prev => prev + 1);
-        }
+        }, 100);
+      } else {
+        setCurrentQuestionIndex(prev => prev + 1);
+      }
       }, 1500);
-      
     } else {
-      playSound(wrongSoundRef.current);
+      playWrongSound(); 
       setLives(prev => {
         const newLives = prev - 1;
         if (newLives <= 0) {
@@ -954,14 +1040,58 @@ const Game: React.FC = () => {
       }
 
       if (currentQuestion && !gameWin) {
-        ctx.font = `bold ${Math.min(32, canvasSize.height * 0.05)}px Arial`;
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 3;
-        ctx.textAlign = 'center';
-        ctx.strokeText(currentQuestion.question, canvas.width / 2, 60);
-        ctx.fillText(currentQuestion.question, canvas.width / 2, 60);
+  const questionText = currentQuestion.question;
+  const maxWidth = canvas.width * 0.7; // Chiều rộng tối đa 70% canvas
+  const lineHeight = Math.min(40, canvasSize.height * 0.06);
+  const startY = 60;
+  
+  ctx.font = `bold ${Math.min(32, canvasSize.height * 0.05)}px Arial`;
+  ctx.fillStyle = 'white';
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 3;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  
+  // Hàm wrap text
+  const wrapText = (text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
       }
+    }
+    if (currentLine) lines.push(currentLine);
+    // Nếu vẫn còn dài quá, cắt cứng theo ký tự
+    if (lines.length === 0) {
+      let tempLine = '';
+      for (let i = 0; i < text.length; i++) {
+        const testLine = tempLine + text[i];
+        if (ctx.measureText(testLine).width > maxWidth) {
+          lines.push(tempLine);
+          tempLine = text[i];
+        } else {
+          tempLine = testLine;
+        }
+      }
+      if (tempLine) lines.push(tempLine);
+    }
+    return lines;
+  };
+  const lines = wrapText(questionText, maxWidth);
+  // Vẽ từng dòng
+  lines.forEach((line, index) => {
+    const y = startY + (index * lineHeight);
+    ctx.strokeText(line, canvas.width / 2, y);
+    ctx.fillText(line, canvas.width / 2, y);
+  });
+}
 
       ctx.font = `${Math.min(24, canvasSize.height * 0.04)}px Arial`;
       ctx.fillStyle = 'white';
@@ -977,12 +1107,39 @@ const Game: React.FC = () => {
         ctx.fillText('❤️', canvas.width - 150 + i * 35, 50);
       }
 
+      // Tính số dòng của câu hỏi (cần đồng bộ với hàm wrapText)
+      const getQuestionLines = (text: string): number => {
+        const maxWidth = canvas.width * 0.7;
+        ctx.font = `bold ${Math.min(32, canvasSize.height * 0.05)}px Arial`;
+        
+        const words = text.split(' ');
+        let lines = 1;
+        let currentLine = '';
+        
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && currentLine !== '') {
+            lines++;
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        return lines;
+      };
+
+      // Tính Y cho dòng câu hỏi
+      const questionLines = currentQuestion ? getQuestionLines(currentQuestion.question) : 1;
+      const questionHeight = questionLines * (Math.min(40, canvasSize.height * 0.06));
+      const questionY = 60 + questionHeight + 10; // 60 là vị trí bắt đầu, +10 là khoảng cách
+
       ctx.font = `${Math.min(20, canvasSize.height * 0.03)}px Arial`;
       ctx.fillStyle = 'white';
       ctx.strokeStyle = 'black';
       ctx.lineWidth = 2;
-      ctx.strokeText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, 100);
-      ctx.fillText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, 100);
+      ctx.strokeText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, questionY);
+      ctx.fillText(`Question ${currentQuestionIndex + 1}/${questions.length}`, canvas.width / 2, questionY);
       
       // Hiển thị tốc độ
       const totalSpeed = baseGameSpeed;
