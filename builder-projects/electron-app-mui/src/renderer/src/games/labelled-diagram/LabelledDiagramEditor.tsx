@@ -13,6 +13,7 @@ import {
 } from './components'
 import { useDiagramInteraction } from './hooks/useDiagramInteraction'
 import { useLabelledDiagramPoints } from './hooks/useLabelledDiagramPoints'
+import { gridBackground } from './styles'
 
 interface Props {
   appData: LabelledDiagramAppData
@@ -149,9 +150,7 @@ export default function LabelledDiagramEditor({
           flex: 1,
           position: 'relative',
           overflow: 'hidden',
-          backgroundColor: '#1a1d26',
-          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
+          ...gridBackground
         }}
       >
         {!imagePath ? (
@@ -173,9 +172,12 @@ export default function LabelledDiagramEditor({
               <TransformWrapper
                 ref={transformRef}
                 initialScale={1}
-                minScale={0.85}
+                minScale={0.75}
                 maxScale={10}
                 centerOnInit
+                limitToBounds={true}
+                panning={{ velocityDisabled: true }}
+                centerZoomedOut={true}
                 disabled={!!draggingPointId}
                 doubleClick={{ disabled: true }}
                 onInit={(ref) => setTransform({ ...ref.state })}
