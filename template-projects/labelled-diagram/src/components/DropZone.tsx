@@ -1,81 +1,48 @@
 import { useDroppable } from "@dnd-kit/core";
-import { AnimatePresence, motion } from "framer-motion";
-import { layoutTransition } from "../config";
-import type { Zone, Label } from "../types/diagram";
+import type { Point } from "../types/diagram";
 
 interface Props {
-  zone: Zone;
-  label?: Label;
-  isCorrect?: boolean;
-  correctLabelId?: string;
+  point: Point;
+  placedLabelId?: string;
 }
 
-const DropZone: React.FC<Props> = ({
-  zone,
-  label,
-  isCorrect,
-  correctLabelId,
-}) => {
+const DropZone: React.FC<Props> = ({ point, placedLabelId }) => {
   const { setNodeRef, isOver } = useDroppable({
-    id: zone.id,
+    id: point.id,
   });
+
+  const isCorrect = placedLabelId === point.id;
 
   return (
     <div
       ref={setNodeRef}
+      className="absolute"
       style={{
-        position: "absolute",
-        left: `${zone.x}%`,
-        top: `${zone.y}%`,
+        left: `${point.xPercent}%`,
+        top: `${point.yPercent}%`,
         transform: "translate(-50%, -50%)",
       }}
-      className={`px-2 py-1 flex items-center justify-center rounded-lg border-2 transition-all relative ${
-        isOver
-          ? "border-cyan-400 bg-cyan-400/20 scale-110"
-          : isCorrect === true
-          ? "border-emerald-400 bg-emerald-400/20"
-          : isCorrect === false
-          ? "border-red-400 bg-red-400/20"
-          : "border-purple-300/40 bg-purple-400/10 hover:border-purple-400"
-      }`}
     >
-      {/* Empty zone (nhỏ gọn) */}
-      {!label && (
-        <div className="w-5 h-5 rounded-full border border-purple-300/60 bg-white/10" />
-      )}
+      {/* 🔥 UI CIRCLE */}
+      <div
+        className={`
+          flex items-center justify-center
+          w-9 h-9 rounded-full text-sm font-bold
+          shadow-lg border border-white/30
+          transition-all duration-200
 
-      {/* Label khi drop */}
-      <AnimatePresence mode="popLayout">
-        {label && (
-          <motion.div
-            key={label.id}
-            layoutId={label.id}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={layoutTransition}
-            className="relative"
-          >
-            <div className="text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-md px-2 py-1 border border-purple-400/50 shadow-soft whitespace-nowrap">
-              {label.name}
-            </div>
-
-            {/* Check đúng */}
-            {isCorrect === true && (
-              <div className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
-                ✓
-              </div>
-            )}
-
-            {/* Sai */}
-            {isCorrect === false && (
-              <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
-                ✕
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ${isOver ? "scale-110 bg-cyan-400" : ""}
+          ${
+            isCorrect
+              ? "bg-green-400 text-black"
+              : placedLabelId
+              ? "bg-red-400 text-white"
+              : "bg-white/80 text-black"
+          }
+        `}
+      >
+        {placedLabelId ? "✓" : ""}
+      </div>
     </div>
   );
 };

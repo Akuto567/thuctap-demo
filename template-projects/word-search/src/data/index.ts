@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 import type { WordSearchConfig } from "../types/objects";
 
+const DEFAULT_BACKGROUND = "assets/images/word-search-sample-background.svg";
+
 const DEFAULT_DATA: WordSearchConfig = {
   items: [
     { id: "item1", image: "🐱", word: "Cat" },
@@ -9,7 +11,7 @@ const DEFAULT_DATA: WordSearchConfig = {
     { id: "item4", image: "🐦", word: "Bird" },
     { id: "item5", image: "⭐", word: "Star" },
   ],
-  background: "",
+  background: DEFAULT_BACKGROUND,
 };
 //Chạy yarn dev http://localhost:5173/?test=true để kiểm
 const MORE_TEST_DATA: WordSearchConfig["items"] = [
@@ -42,6 +44,12 @@ const processItemsToSentenceCase = (
   }));
 };
 
+const resolveBackground = (background?: string): string => {
+  return typeof background === "string" && background.trim()
+    ? background
+    : DEFAULT_BACKGROUND;
+};
+
 const getData = (): WordSearchConfig => {
   const win = window as any;
   const externalData = win.MY_APP_DATA || win.APP_DATA;
@@ -49,6 +57,7 @@ const getData = (): WordSearchConfig => {
   if (externalData) {
     return {
       ...externalData,
+      background: resolveBackground(externalData.background),
       items: processItemsToSentenceCase(externalData.items),
     };
   }
@@ -86,9 +95,6 @@ export function createWordSearchGameData(appData?: Partial<WordSearchConfig>): W
           word: item?.word ?? ""
         }))
       : DEFAULT_DATA.items,
-    background:
-      typeof appData?.background === "string"
-        ? appData.background
-        : DEFAULT_DATA.background
+    background: resolveBackground(appData?.background)
   };
 }

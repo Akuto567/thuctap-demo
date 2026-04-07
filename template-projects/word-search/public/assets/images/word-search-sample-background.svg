@@ -1,0 +1,39 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="120" x2="1460" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDF5E8"/>
+      <stop offset="0.48" stop-color="#EFF6FF"/>
+      <stop offset="1" stop-color="#FFF7ED"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(272 188) rotate(53.1301) scale(340 290)">
+      <stop stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#FFE08A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sky" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1284 124) rotate(132.62) scale(420 360)">
+      <stop stop-color="#BFDBFE"/>
+      <stop offset="1" stop-color="#BFDBFE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1210 760) rotate(132.51) scale(300 240)">
+      <stop stop-color="#FECACA"/>
+      <stop offset="1" stop-color="#FECACA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="272" cy="188" r="238" fill="url(#sun)"/>
+  <circle cx="1284" cy="124" r="286" fill="url(#sky)"/>
+  <circle cx="1210" cy="760" r="210" fill="url(#glow)"/>
+
+  <g opacity="0.55">
+    <path d="M170 628C243 549 361 529 445 582C523 631 635 627 717 572C816 505 957 516 1044 601C1119 674 1237 689 1325 640" stroke="#8EC5FF" stroke-width="22" stroke-linecap="round"/>
+    <path d="M238 700C330 640 449 645 531 709C612 772 730 777 817 719C912 656 1036 659 1123 724" stroke="#C7E6A1" stroke-width="18" stroke-linecap="round"/>
+  </g>
+
+  <g opacity="0.9">
+    <circle cx="360" cy="208" r="11" fill="#FFFFFF"/>
+    <circle cx="382" cy="238" r="8" fill="#FFFFFF"/>
+    <circle cx="1238" cy="214" r="10" fill="#FFFFFF"/>
+    <circle cx="1274" cy="184" r="7" fill="#FFFFFF"/>
+    <circle cx="1182" cy="742" r="9" fill="#FFFFFF"/>
+  </g>
+</svg>

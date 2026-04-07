@@ -7,36 +7,60 @@ function App() {
 
   useEffect(() => {
     try {
-      // 🔥 Lấy data từ Builder (khi export)
-      let raw = (window as any).APP_DATA;
+      // 🔥 Check tất cả các kiểu builder có thể dùng
+      const raw =
+        (window as any).APP_DATA ||
+        (window as any).appData ||
+        (window as any).__APP_DATA__;
 
-      // 🛠 DEV fallback (khi chạy yarn dev)
+      console.log("🔥 FULL WINDOW:", window);
+      console.log("🔥 RAW FROM BUILDER:", raw);
+
+      // ❌ Nếu builder chưa truyền
       if (!raw) {
-        console.warn("⚠️ No APP_DATA found → using mock data");
+        console.warn("⚠️ Builder chưa inject data → dùng mock");
 
-        raw = {
-          id: "dev-human",
-          name: "Cơ thể người",
-          image: "/assets/images/human/Akari.png",
-          labels: [
-            { id: 1, name: "Đầu" },
-            { id: 2, name: "Ngực" },
-            { id: 3, name: "Chân" }
+        const mock: DiagramData = {
+          imagePath: "/assets/images/human/Akari.png",
+          points: [
+            { id: "p1", text: "Đầu", xPercent: 50, yPercent: 10 },
+            { id: "p2", text: "Ngực", xPercent: 50, yPercent: 40 },
+            { id: "p3", text: "Chân", xPercent: 50, yPercent: 80 },
           ],
-          zones: [
-            { id: 1, x: 30, y: 15, correctLabelId: 1 },
-            { id: 2, x: 50, y: 40, correctLabelId: 2 },
-            { id: 3, x: 45, y: 80, correctLabelId: 3 }
-          ]
         };
+
+        setData(mock);
+        return;
       }
 
-      console.log("🔥 RAW DATA:", raw);
+      // ❌ Sai format (builder gửi labels/zones)
+      if (!raw.points && raw.labels && raw.zones) {
+        console.warn("⚠️ Detect data cũ → auto convert");
 
-      const mapped = mapAppData(raw);
-      console.log("🎯 MAPPED:", mapped);
+        const converted: DiagramData = {
+          imagePath: raw.imagePath,
+          points: raw.zones.map((z: any) => {
+            const label = raw.labels.find(
+              (l: any) => l.id === z.correctLabelId
+            );
 
-      setData(mapped);
+            return {
+              id: label?.id || z.id,
+              text: label?.name || "Unknown",
+              xPercent: z.x,
+              yPercent: z.y,
+            };
+          }),
+        };
+
+        console.log("🔥 CONVERTED DATA:", converted);
+
+        setData(converted);
+        return;
+      }
+
+      // ✅ Data chuẩn builder mới
+      setData(raw);
     } catch (err) {
       console.error("❌ Load error:", err);
     }
@@ -48,39 +72,3 @@ function App() {
 }
 
 export default App;
-
-
-
-// =======================
-// 🔥 Mapper
-// =======================
-const mapAppData = (appData: any): DiagramData => {
-  return {
-    id: appData?.id || "diagram-game",
-    name: appData?.name || "Diagram Game",
-
-    imagePath:
-      appData?.image ||
-      appData?.settings?.image ||
-      appData?.background ||
-      "/assets/images/human/Akari.png",
-
-    labels: (appData?.labels || appData?.items || []).map(
-      (item: any, index: number) => ({
-        id: String(item.id ?? index),
-        name: item.name || item.text || item.label || ""
-      })
-    ),
-
-    zones: (appData?.zones || appData?.answers || []).map(
-      (z: any, index: number) => ({
-        id: String(z.id ?? index),
-        x: Number(z.x ?? z.left ?? 0),
-        y: Number(z.y ?? z.top ?? 0),
-        correctLabelId: String(
-          z.correctLabelId ?? z.answerId ?? z.labelId ?? ""
-        )
-      })
-    )
-  };
-};

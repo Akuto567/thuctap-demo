@@ -11,6 +11,7 @@ export default function GamePreview({
   foundWords,
   hintCell,
   onHint,
+  onOpenTutorial,
   onPointerDown,
   onPointerEnter,
   onPointerMove,
@@ -58,9 +59,14 @@ export default function GamePreview({
             Drag across the grid to find words. On phones, swipe directly on the letters.
           </p>
 
-          <button className="hint-btn" onClick={onHint}>
-            💡 Hint
-          </button>
+          <div className="game-actions">
+            <button className="hint-btn" onClick={onHint}>
+              Hint
+            </button>
+            <button className="hint-btn hint-btn--secondary" onClick={onOpenTutorial}>
+              How to Play
+            </button>
+          </div>
         </div>
         <div className="game-scale">
           <div className="game-wrapper">

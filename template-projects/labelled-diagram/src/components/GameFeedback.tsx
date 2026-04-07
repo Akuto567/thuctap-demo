@@ -6,16 +6,17 @@ interface FeedbackProps {
 }
 
 const GameFeedback: React.FC<FeedbackProps> = ({ data, placed }) => {
-  const totalZones = data.zones.length;
+  const totalPoints = data.points.length;
 
-  const correctPlacements = data.zones.filter(
-    (zone) => placed[zone.id] === zone.correctLabelId
+  // ✅ đúng khi label.id === point.id
+  const correctPlacements = data.points.filter(
+    (p) => placed[p.id] === p.id
   ).length;
 
   const placedCount = Object.keys(placed).length;
-  const totalLabels = data.labels.length;
+  const totalLabels = data.points.length;
 
-  const accuracy = totalZones > 0 ? correctPlacements / totalZones : 0;
+  const accuracy = totalPoints > 0 ? correctPlacements / totalPoints : 0;
   const percentage = Math.round(accuracy * 100);
 
   const remaining = totalLabels - placedCount;
@@ -37,7 +38,7 @@ const GameFeedback: React.FC<FeedbackProps> = ({ data, placed }) => {
         <div className="flex justify-between">
           <span>Correct</span>
           <span className="text-emerald-400 font-semibold">
-            {correctPlacements}/{totalZones}
+            {correctPlacements}/{totalPoints}
           </span>
         </div>
       </div>

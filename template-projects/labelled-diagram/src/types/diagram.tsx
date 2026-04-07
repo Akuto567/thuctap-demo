@@ -1,24 +1,17 @@
-export interface Label {
+export interface Point {
   id: string;
-  name: string;
-  imagePath?: string;
-}
-
-export interface Zone {
-  id: string;
-  correctLabelId: string;
-
-  // % position
-  x: number;
-  y: number;
+  text: string;
+  xPercent: number;
+  yPercent: number;
 }
 
 export interface DiagramData {
+  imagePath: string;
+  points: Point[];
+}
+
+// Label dùng runtime (UI)
+export interface Label {
   id: string;
   name: string;
-
-  imagePath?: string;
-
-  labels: Label[];
-  zones: Zone[];
 }

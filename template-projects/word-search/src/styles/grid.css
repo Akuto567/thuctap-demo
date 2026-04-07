@@ -157,6 +157,13 @@
 }
 
 /* ===== HINT BUTTON ===== */
+.game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
 .hint-btn {
   padding: 8px 16px;
   border: none;
@@ -177,6 +184,15 @@
 
 .hint-btn:active {
   transform: translateY(0);
+}
+
+.hint-btn--secondary {
+  background: linear-gradient(135deg, #1976d2, #00a3d7);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.28);
+}
+
+.hint-btn--secondary:hover {
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.38);
 }
 
 /* ===== IMAGE HINTS ===== */
@@ -778,7 +794,9 @@ p {
   }
 
   .game-wrapper {
+    width: min(100%, 520px);
     gap: 14px;
+    justify-content: flex-start;
   }
 
   .image-hints {
@@ -920,16 +938,57 @@ p {
   }
 }
 
-@media (max-height: 820px) {
+@media (min-width: 1200px) and (max-height: 820px) {
   :root {
     --grid-max-size: clamp(
       var(--grid-min-size),
-      min(calc(100vw - var(--viewport-gutter)), calc(100dvh - 235px), var(--grid-max-cap)),
+      min(calc(100vw - var(--hint-column-width) - var(--viewport-gutter)), calc(100dvh - 238px), var(--grid-max-cap)),
       var(--grid-max-cap)
     );
+    --hint-card-width: 72px;
+    --hint-card-height: 96px;
+    --hint-thumb-size: 40px;
   }
 
   .overlay-content {
+    overflow-y: auto;
+    gap: 6px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .game-topbar {
+    gap: 6px;
+  }
+
+  .game-title {
+    font-size: clamp(20px, 2.5vw, 30px);
+  }
+
+  .game-helper {
+    font-size: clamp(11px, 1.4vw, 14px);
+  }
+
+  .progress-container {
+    height: 28px;
+  }
+
+  .game-scale {
+    margin-top: 10px;
+  }
+
+  .game-wrapper {
+    gap: clamp(24px, 4vw, 40px);
+  }
+
+  .image-hints {
+    margin-left: clamp(8px, 1.5vw, 16px);
+  }
+}
+
+@media (max-height: 820px) and (max-width: 1199px) {
+  .overlay-content {
+    overflow-y: auto;
     gap: 6px;
     padding-top: 12px;
     padding-bottom: 12px;
@@ -953,5 +1012,13 @@ p {
 
   .game-wrapper {
     gap: 16px;
+    justify-content: flex-start;
+  }
+
+  .game-scale {
+    padding-top: clamp(10px, 1.8vh, 18px);
+    padding-bottom: 8px;
+    box-sizing: border-box;
+    overflow: visible;
   }
 }

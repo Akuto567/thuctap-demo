@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import GamePreview from "../components/Game/GamePreview";
+import HowToPlayModal from "../components/Tutorial/HowToPlayModal";
 import { generateWordSearch } from "../engine/generateWordSearch";
 import { MY_APP_DATA } from "../data";
 
-const customBackground = "";
+const customBackground = "assets/images/word-search-sample-background.svg";
 
 const DEFAULT_ITEMS = [
   { id: "item1", word: "Cat", image: "🐱" },
@@ -12,6 +13,21 @@ const DEFAULT_ITEMS = [
   { id: "item3", word: "Jump", image: "🦘" },
   { id: "item4", word: "Bird", image: "🐦" },
   { id: "item5", word: "Star", image: "⭐" }
+];
+
+const TUTORIAL_IMAGES = [
+  {
+    src: "assets/images/word-search-guide-01-overview.png",
+    alt: "Word Search overview guide"
+  },
+  {
+    src: "assets/images/word-search-guide-02-drag-to-find.png",
+    alt: "Word Search drag to find guide"
+  },
+  {
+    src: "assets/images/word-search-guide-03-hint-and-progress.png",
+    alt: "Word Search hint and progress guide"
+  }
 ];
 
 export default function WordSearchPage() {
@@ -28,6 +44,7 @@ export default function WordSearchPage() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [showCongrats, setShowCongrats] = useState(false);
   const [hintCell, setHintCell] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const isDraggingRef = useRef(false);
   const anchorCellRef = useRef(null);
@@ -313,6 +330,12 @@ export default function WordSearchPage() {
 
   return (
     <>
+      <HowToPlayModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        images={TUTORIAL_IMAGES}
+      />
+
       <div className="game-page">
         {showPreview && (
           <GamePreview
@@ -324,6 +347,7 @@ export default function WordSearchPage() {
             foundWords={foundWords}
             hintCell={hintCell}
             onHint={handleHint}
+            onOpenTutorial={() => setShowTutorial(true)}
             onPointerDown={handlePointerDown}
             onPointerEnter={handlePointerEnter}
             onPointerMove={handlePointerMove}
