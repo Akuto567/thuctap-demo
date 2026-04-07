@@ -6,7 +6,7 @@
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useCallback } from 'react'
-import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../../types'
+import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '@renderer/types'
 
 interface UseGroupSortCrudReturn {
   groups: GroupSortGroup[]

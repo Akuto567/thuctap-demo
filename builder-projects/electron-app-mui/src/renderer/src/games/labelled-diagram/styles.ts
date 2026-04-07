@@ -66,4 +66,4 @@ export const gridBackground = {
   backgroundSize: '100px 100px, 100px 100px, 20px 20px, 20px 20px'
 }
 
-export const DIAGRAM_PADDING = 150
+export const DIAGRAM_PADDING = 50

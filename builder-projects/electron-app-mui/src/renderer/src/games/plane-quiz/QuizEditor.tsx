@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import React from 'react'
 import { QuizAppData } from '../../types'
 import { QuizTab, SummarySidebar } from './components'
-import { usePlaneQuizCrud } from './usePlaneQuizCrud'
+import { usePlaneQuizCrud } from './hooks/usePlaneQuizCrud'
 
 interface Props {
   appData: QuizAppData

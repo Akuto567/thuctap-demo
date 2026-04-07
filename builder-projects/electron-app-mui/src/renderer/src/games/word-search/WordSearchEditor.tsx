@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { SidebarTab } from '../../components/editors'
 import { WordSearchAppData } from '../../types'
 import { SettingsTab, WordsTab } from './components'
-import { useWordSearchCrud } from './useWordSearchCrud'
+import { useWordSearchCrud } from './hooks/useWordSearchCrud'
 
 interface Props {
   appData: WordSearchAppData

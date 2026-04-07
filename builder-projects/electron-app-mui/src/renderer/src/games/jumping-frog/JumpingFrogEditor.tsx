@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import React from 'react'
 import { JumpingFrogAppData } from '../../types'
 import { QuestionsTab, SummarySidebar } from './components'
-import { useJumpingFrogCrud } from './useJumpingFrogCrud'
+import { useJumpingFrogCrud } from './hooks/useJumpingFrogCrud'
 
 interface Props {
   appData: JumpingFrogAppData

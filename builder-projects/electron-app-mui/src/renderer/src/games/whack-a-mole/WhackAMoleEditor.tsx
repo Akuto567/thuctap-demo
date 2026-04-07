@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 import { SidebarTab } from '../../components/editors'
 import { WhackAMoleAppData } from '../../types'
 import { QuestionsTab, SettingsTab } from './components'
-import { useWhackAMoleCrud } from './useWhackAMoleCrud'
+import { useWhackAMoleCrud } from './hooks/useWhackAMoleCrud'
 
 interface Props {
   appData: WhackAMoleAppData

@@ -5,7 +5,7 @@ import { JSX, useState } from 'react'
 import { SidebarTab } from '../../components/editors'
 import { PairMatchingAppData } from '../../types'
 import { PairsTab, SettingsTab } from './components'
-import { usePairCrud } from './usePairCrud'
+import { usePairCrud } from './hooks/usePairCrud'
 
 interface Props {
   appData: PairMatchingAppData

@@ -6,8 +6,8 @@
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useCallback } from 'react'
-import { BalloonLetterPickerAppData, BalloonWord } from '../../types'
-import { toBb26 } from '../../utils/stringUtils'
+import { BalloonLetterPickerAppData, BalloonWord } from '@renderer/types'
+import { toBb26 } from '@renderer/utils'
 
 interface UseBalloonCrudReturn {
   words: BalloonWord[]

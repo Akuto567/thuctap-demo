@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import { JSX } from 'react'
 import { BalloonLetterPickerAppData } from '../../types'
 import { SummarySidebar, WordsTab } from './components'
-import { useBalloonCrud } from './useBalloonCrud'
+import { useBalloonCrud } from './hooks/useBalloonCrud'
 
 interface Props {
   appData: BalloonLetterPickerAppData

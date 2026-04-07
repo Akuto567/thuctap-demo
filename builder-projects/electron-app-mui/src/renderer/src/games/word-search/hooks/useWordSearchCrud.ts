@@ -1,33 +1,34 @@
 /**
- * Hook for Pair Matching entity CRUD operations.
- * Manages pair item creation, updates, and deletion with counter-based ID generation.
+ * Hook for Word Search entity CRUD operations.
+ * Manages word creation, updates, and deletion with counter-based ID generation.
  */
 
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useCallback } from 'react'
-import { PairMatchingAppData, PairMatchingItem } from '../../types'
+import { WordSearchAppData, WordSearchItem } from '@renderer/types'
+import { toBb26 } from '@renderer/utils'
 
-interface UsePairCrudReturn {
-  items: PairMatchingItem[]
+interface UseWordSearchCrudReturn {
+  items: WordSearchItem[]
   addItem: (initialImage?: string) => void
   addItemFromDrop: (filePath: string) => Promise<void>
-  updateItem: (id: string, patch: Partial<PairMatchingItem>) => void
+  updateItem: (id: string, patch: Partial<WordSearchItem>) => void
   deleteItem: (id: string) => void
 }
 
 /**
- * Provides CRUD operations for pair matching items.
+ * Provides CRUD operations for word search items.
  *
  * @param data - Normalized appData
  * @param projectDir - Project directory path for image imports
  * @param onChange - State update callback
  */
-export function usePairCrud(
-  data: PairMatchingAppData,
+export function useWordSearchCrud(
+  data: WordSearchAppData,
   projectDir: string,
-  onChange: (data: PairMatchingAppData) => void
-): UsePairCrudReturn {
+  onChange: (data: WordSearchAppData) => void
+): UseWordSearchCrudReturn {
   const { resolved } = useSettings()
   const { items } = data
 
@@ -39,11 +40,10 @@ export function usePairCrud(
   const addItem = useCallback(
     (initialImage?: string) => {
       const { id, counter } = nextItemId()
-      const i: PairMatchingItem = {
+      const i: WordSearchItem = {
         id,
-        keyword: resolved.prefillNames ? `Pair ${counter}` : '',
-        imagePath: initialImage ?? null,
-        minPairs: 1
+        word: resolved.prefillNames ? `WORD${toBb26(counter)}` : '',
+        imagePath: initialImage ?? null
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
@@ -54,9 +54,9 @@ export function usePairCrud(
     async (filePath: string) => {
       const { id, counter } = nextItemId()
       const imagePath = await window.electronAPI.importImage(filePath, projectDir, id)
-      const i: PairMatchingItem = {
+      const i: WordSearchItem = {
         id,
-        keyword: resolved.prefillNames ? `Pair ${counter}` : '',
+        word: resolved.prefillNames ? `WORD${toBb26(counter)}` : '',
         imagePath
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
@@ -65,7 +65,7 @@ export function usePairCrud(
   )
 
   const updateItem = useCallback(
-    (id: string, patch: Partial<PairMatchingItem>) => {
+    (id: string, patch: Partial<WordSearchItem>) => {
       onChange({ ...data, items: items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })
     },
     [data, items, onChange]

@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { FindTheTreasureAppData } from '../../types'
 import type { Tab } from './components'
 import { StageSidebar, StagesTab } from './components'
-import { useFindTheTreasureCrud } from './useFindTheTreasureCrud'
+import { useFindTheTreasureCrud } from './hooks/useFindTheTreasureCrud'
 
 interface Props {
   appData: FindTheTreasureAppData

@@ -7,7 +7,7 @@ import { JSX, useState } from 'react'
 import { SidebarTab } from '../../components/editors'
 import { GroupSortAppData } from '../../types'
 import { GroupsTab, ItemsTab, OverviewTab } from './components'
-import { useGroupSortCrud } from './useGroupSortCrud'
+import { useGroupSortCrud } from './hooks/useGroupSortCrud'
 
 interface Props {
   appData: GroupSortAppData
