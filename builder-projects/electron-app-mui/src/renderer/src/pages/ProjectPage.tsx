@@ -3,6 +3,7 @@ import { useProjectHistory } from '@renderer/context/useProjectHistory'
 import { useAppDocumentTitle } from '@renderer/hooks/useAppDocumentTitle'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useSettingsStore } from '@renderer/stores/settingsStore'
+import { useBoolean, useInterval, useUnmount } from 'usehooks-ts'
 import { JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { MoreActionsMenu } from '../components/project/MoreActionsMenu'
@@ -101,6 +102,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     return () => setProjectSettings(null)
   }, [locationState?.data?.settings, setProjectSettings])
 
+  // Track previous projectSettings to detect changes
   const [prevProjectSettings, setPrevProjectSettings] = useState(projectSettings)
 
   // Sync project settings from context to meta (for saving)
@@ -117,15 +119,14 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
 
   // UI state
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null)
-  const [renameOpen, setRenameOpen] = useState(false)
+  const renameOpen = useBoolean(false)
   const [renameValue, setRenameValue] = useState('')
-  const [backConfirm, setBackConfirm] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const backConfirm = useBoolean(false)
+  const settingsOpen = useBoolean(false)
   const [saveAsConfirmFolder, setSaveAsConfirmFolder] = useState<string | null>(null)
 
   // ── Refs for auto-save ─────────────────────────────────────────────────────
   const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const metaRef = useRef(meta)
   const appDataRef = useRef(appData)
   const isDirtyRef = useRef(isDirty)
@@ -194,39 +195,26 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   )
 
   // ── Auto-save: interval mode ───────────────────────────────────────────────
-  useEffect(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-
-    if (resolved.autoSave.mode === 'interval') {
-      intervalRef.current = setInterval(() => {
-        if (isDirtyRef.current && metaRef.current) {
-          doSave(metaRef.current, appDataRef.current).catch(() => {
-            // Silently fail - user will see dirty indicator
-          })
-        }
-      }, resolved.autoSave.intervalSeconds * 1000)
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
+  // Use useInterval hook for cleaner interval management with automatic cleanup
+  useInterval(
+    () => {
+      if (isDirtyRef.current && metaRef.current) {
+        doSave(metaRef.current, appDataRef.current).catch(() => {
+          // Silently fail - user will see dirty indicator
+        })
       }
-    }
-  }, [resolved.autoSave.mode, resolved.autoSave.intervalSeconds, doSave])
+    },
+    resolved.autoSave.mode === 'interval' ? resolved.autoSave.intervalSeconds * 1000 : null
+  )
 
   // ── Auto-save: on-edit mode cleanup ────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      if (onEditTimerRef.current) {
-        clearTimeout(onEditTimerRef.current)
-        onEditTimerRef.current = null
-      }
+  // Use useUnmount for cleanup-only effect (clearer intent than useEffect with empty deps)
+  useUnmount(() => {
+    if (onEditTimerRef.current) {
+      clearTimeout(onEditTimerRef.current)
+      onEditTimerRef.current = null
     }
-  }, [])
+  })
 
   // ── App data change (from editor) ─────────────────────────────────────────
   const handleAppDataChange = useCallback(
@@ -329,7 +317,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     const updated = { ...meta, name: renameValue.trim() }
     setMeta(updated)
     setIsDirty(true)
-    setRenameOpen(false)
+    renameOpen.setFalse()
     try {
       await doSave(updated, appData)
     } catch (e) {
@@ -378,10 +366,10 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         autoSaveLabel={autoSaveLabel}
         canUndo={canUndo}
         canRedo={canRedo}
-        onBack={() => (isDirty ? setBackConfirm(true) : navigate('/'))}
+        onBack={() => (isDirty ? backConfirm.setTrue() : navigate('/'))}
         onRename={() => {
           setRenameValue(meta.name)
-          setRenameOpen(true)
+          renameOpen.setTrue()
         }}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
@@ -392,7 +380,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         renderMoreActions={() => (
           <MoreActionsMenu
             pathToOpen={meta.projectDir}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={() => settingsOpen.setTrue()}
           />
         )}
       />
@@ -417,7 +405,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
       </Box>
 
       {/* ── Settings panel ── */}
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} hasProject />
+      <SettingsPanel open={settingsOpen.value} onClose={settingsOpen.setFalse} hasProject />
 
       {/* ── Export menu ── */}
       <ExportMenu
@@ -439,8 +427,8 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
 
       {/* ── Rename dialog ── */}
       <RenameDialog
-        open={renameOpen}
-        onClose={() => setRenameOpen(false)}
+        open={renameOpen.value}
+        onClose={renameOpen.setFalse}
         currentValue={renameValue}
         onChange={setRenameValue}
         onConfirm={handleRename}
@@ -448,14 +436,14 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
 
       {/* ── Back confirm ── */}
       <BackConfirmDialog
-        open={backConfirm}
-        onClose={() => setBackConfirm(false)}
+        open={backConfirm.value}
+        onClose={backConfirm.setFalse}
         onDiscard={() => {
-          setBackConfirm(false)
+          backConfirm.setFalse()
           navigate('/')
         }}
         onSaveAndLeave={async () => {
-          setBackConfirm(false)
+          backConfirm.setFalse()
           await handleSave()
           navigate('/')
         }}

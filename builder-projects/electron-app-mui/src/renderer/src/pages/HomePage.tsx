@@ -1,6 +1,7 @@
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import { Box, Divider, Typography } from '@mui/material'
 import { useAppDocumentTitle } from '@renderer/hooks/useAppDocumentTitle'
+import { useBoolean } from 'usehooks-ts'
 import { JSX, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -26,7 +27,7 @@ export default function HomePage(): JSX.Element {
   const navigate = useNavigate()
   const manager = useTemplateManager()
   const [folderDlg, setFolderDlg] = useState<FolderDialogState>(null)
-  const [showRecent, setShowRecent] = useState(false)
+  const showRecent = useBoolean(false)
   useAppDocumentTitle('Home Page')
 
   // Use Zustand store for recent projects
@@ -153,8 +154,8 @@ export default function HomePage(): JSX.Element {
       {/* ── Recent projects (collapsible) ── */}
       <RecentProjectsSection
         recent={recentProjects}
-        showRecent={showRecent}
-        onToggleShow={() => setShowRecent((v) => !v)}
+        showRecent={showRecent.value}
+        onToggleShow={showRecent.toggle}
         onBrowse={handleOpenExisting}
         onOpenRecent={openRecent}
         onRemoveRecent={removeRecent}
